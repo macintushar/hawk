@@ -7,10 +7,13 @@ export const env = createEnv({
    * isn't built with invalid env vars.
    */
   server: {
-    DATABASE_URL: z.string().url(),
+    DATABASE_URL: z.url(),
+    DATABASE_TOKEN: z.string(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
+    BETTER_AUTH_SECRET: z.string(),
+    BASE_URL: z.url(),
   },
 
   /**
@@ -28,7 +31,10 @@ export const env = createEnv({
    */
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
+    DATABASE_TOKEN: process.env.DATABASE_TOKEN,
     NODE_ENV: process.env.NODE_ENV,
+    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+    BASE_URL: process.env.BASE_URL,
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
   /**

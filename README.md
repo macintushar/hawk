@@ -1,29 +1,45 @@
-# Create T3 App
+# Hawk
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+Hawk is a monitoring tool to track the status of your websites and services.
 
-## What's next? How do I make an app with this?
+## Features
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+- Track the status of your websites and services
+- Get notified when your websites and services are up or down
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+Monitor
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+- Name
+- Slug
+- URL
+- Status
+- Last Checked
+- Created At
+- Updated At
 
-## Learn More
+Status Page
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+- Name
+- Description
+- Monitor(s)
+- Graph for each monitor
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+Admin
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+- View all monitors
+- View all status pages
+- Create a new monitor
+- Create a new status page
+- Edit a monitor
+- Edit a status page
+- Delete a monitor
+- Delete a status page
+- Add incident to a status page
+- Edit incident on a status page
+- Delete incident on a status page
+- View all incidents on a status page
+- View all incidents
 
-## How do I deploy this?
+Monitors can have a threshold for the status. If number of bad statuses is greater than the threshold, the status will be marked as down and an incident will be created. This will also trigger a notification to the user (Slack or Email). User can only
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+Each monitor will have a CRON Expression to check the status of the monitor. It will be generated either programmatically or manually. A user can add a CRON Expression to a monitor that is minimun 1 per minute to 1 per hour.
