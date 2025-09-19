@@ -5,15 +5,15 @@ import { api } from "@/trpc/server";
 import { EditStatusPageForm } from "./edit-status-page-form";
 
 interface EditStatusPagePageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function EditStatusPagePage({
   params,
 }: EditStatusPagePageProps) {
-  const statusPageId = params.id;
+  const { id: statusPageId } = await params;
 
   // Fetch status page data on the server
   const statusPageData = await api.statusPage.list({
