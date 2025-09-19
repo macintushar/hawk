@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { IconArrowLeft, IconPlus } from "@tabler/icons-react";
 import Link from "next/link";
 import { api } from "@/trpc/react";
@@ -21,11 +32,21 @@ import { toast } from "sonner";
 
 export default function NewIncidentPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    statusPageId: "",
-    monitorId: "",
+  const createIncidentSchema = z.object({
+    title: z.string().min(1, "Title is required"),
+    description: z.string().optional(),
+    statusPageId: z.string().min(1, "Status page is required"),
+    monitorId: z.string().optional(),
+  });
+
+  const form = useForm<z.infer<typeof createIncidentSchema>>({
+    resolver: zodResolver(createIncidentSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      statusPageId: "",
+      monitorId: "",
+    },
   });
 
   const { data: statusPages = [] } = api.statusPage.list.useQuery({});
@@ -44,24 +65,15 @@ export default function NewIncidentPage() {
     },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const onSubmit = async (values: z.infer<typeof createIncidentSchema>) => {
     try {
       createIncidentMutation.mutate({
-        ...formData,
-        monitorId: formData.monitorId || undefined,
+        ...values,
+        monitorId: values.monitorId || undefined,
       });
     } catch (error) {
       console.error("Error creating incident:", error);
     }
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
   };
 
   return (
@@ -85,100 +97,135 @@ export default function NewIncidentPage() {
             <CardTitle>Incident Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  placeholder="Service Outage"
-                  value={formData.title}
-                  onChange={(e) => handleInputChange("title", e.target.value)}
-                  required
-                />
-                <p className="text-muted-foreground text-sm">
-                  A clear, descriptive title for the incident
-                </p>
-              </div>
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Title</FormLabel>
+                        <FormControl>
+                          <Input
+                            id="title"
+                            placeholder="Service Outage"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <p className="text-muted-foreground text-sm">
+                    A clear, descriptive title for the incident
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe what's happening..."
-                  value={formData.description}
-                  onChange={(e) =>
-                    handleInputChange("description", e.target.value)
-                  }
-                  rows={4}
-                />
-                <p className="text-muted-foreground text-sm">
-                  Provide details about the incident
-                </p>
-              </div>
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            id="description"
+                            placeholder="Describe what's happening..."
+                            rows={4}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <p className="text-muted-foreground text-sm">
+                    Provide details about the incident
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="statusPage">Status Page</Label>
-                <Select
-                  value={formData.statusPageId}
-                  onValueChange={(value) =>
-                    handleInputChange("statusPageId", value)
-                  }
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a status page" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusPages.map((page) => (
-                      <SelectItem key={page.id} value={page.id}>
-                        {page.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-muted-foreground text-sm">
-                  Which status page should this incident appear on
-                </p>
-              </div>
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="statusPageId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status Page</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a status page" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {statusPages.map((page) => (
+                              <SelectItem key={page.id} value={page.id}>
+                                {page.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <p className="text-muted-foreground text-sm">
+                    Which status page should this incident appear on
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="monitor">Affected Monitor (Optional)</Label>
-                <Select
-                  value={formData.monitorId}
-                  onValueChange={(value) =>
-                    handleInputChange("monitorId", value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a monitor (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {monitors.map((monitor) => (
-                      <SelectItem key={monitor.id} value={monitor.id}>
-                        {monitor.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-muted-foreground text-sm">
-                  Link this incident to a specific monitor
-                </p>
-              </div>
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="monitorId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Affected Monitor (Optional)</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a monitor (optional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {monitors.map((monitor) => (
+                              <SelectItem key={monitor.id} value={monitor.id}>
+                                {monitor.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <p className="text-muted-foreground text-sm">
+                    Link this incident to a specific monitor
+                  </p>
+                </div>
 
-              <div className="flex gap-4 pt-4">
-                <Button
-                  type="submit"
-                  isLoading={createIncidentMutation.isPending}
-                  loadingText="Creating..."
-                >
-                  <IconPlus className="mr-2 h-4 w-4" />
-                  Create Incident
-                </Button>
-                <Button type="button" variant="outline" asChild>
-                  <Link href="/app/incidents">Cancel</Link>
-                </Button>
-              </div>
-            </form>
+                <div className="flex gap-4 pt-4">
+                  <Button
+                    type="submit"
+                    isLoading={createIncidentMutation.isPending}
+                    loadingText="Creating..."
+                  >
+                    <IconPlus className="mr-2 h-4 w-4" />
+                    Create Incident
+                  </Button>
+                  <Button type="button" variant="outline" asChild>
+                    <Link href="/app/incidents">Cancel</Link>
+                  </Button>
+                </div>
+              </form>
+            </Form>
           </CardContent>
         </Card>
       </div>

@@ -1,18 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { toast } from "sonner";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   IconBell,
   IconMail,
@@ -21,9 +11,22 @@ import {
   IconCheck,
   IconExternalLink,
 } from "@tabler/icons-react";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { api } from "@/trpc/react";
-import { toast } from "sonner";
-import Link from "next/link";
 
 export default function NotificationsPage() {
   const { data: initialSettings, refetch } = api.notifications.get.useQuery(
@@ -118,9 +121,15 @@ export default function NotificationsPage() {
 
       <Tabs defaultValue="rules" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="rules">Notification Rules</TabsTrigger>
-          <TabsTrigger value="slack">Slack</TabsTrigger>
-          <TabsTrigger value="email">Email</TabsTrigger>
+          <TabsTrigger value="rules">
+            <IconBell /> Notification Rules
+          </TabsTrigger>
+          <TabsTrigger value="slack">
+            <IconBrandSlack /> Slack
+          </TabsTrigger>
+          <TabsTrigger value="email">
+            <IconMail /> Email
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="rules" className="space-y-4">
@@ -214,7 +223,7 @@ export default function NotificationsPage() {
                 <IconBrandSlack className="h-5 w-5" />
                 Slack Integration
               </CardTitle>
-              <CardDescription className="flex gap-2">
+              <CardDescription className="flex gap-1">
                 Send notifications to Slack channels.{" "}
                 <Link
                   href="https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/"
@@ -299,6 +308,7 @@ export default function NotificationsPage() {
               <CardTitle className="flex items-center gap-2">
                 <IconMail className="h-5 w-5" />
                 Email Settings
+                <Badge variant="secondary">Coming Soon!</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -314,6 +324,7 @@ export default function NotificationsPage() {
                   onCheckedChange={(checked) =>
                     setEmailSettings((prev) => ({ ...prev, enabled: checked }))
                   }
+                  disabled
                 />
               </div>
 

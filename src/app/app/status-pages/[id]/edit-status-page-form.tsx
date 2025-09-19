@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +15,14 @@ import { IconEdit } from "@tabler/icons-react";
 import Link from "next/link";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 interface EditStatusPageFormProps {
   statusPage: {
@@ -54,9 +65,16 @@ export function EditStatusPageForm({
   availableMonitors,
 }: EditStatusPageFormProps) {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    name: statusPage.name,
-    description: statusPage.description ?? "",
+  const editStatusPageSchema = z.object({
+    name: z.string().min(1, "Name is required"),
+    description: z.string().optional(),
+  });
+  const form = useForm<z.infer<typeof editStatusPageSchema>>({
+    resolver: zodResolver(editStatusPageSchema),
+    defaultValues: {
+      name: statusPage.name,
+      description: statusPage.description ?? "",
+    },
   });
   const [selectedMonitors, setSelectedMonitors] = useState<string[]>(
     statusPage.monitors?.map((monitor) => monitor.id) ?? [],
@@ -67,15 +85,13 @@ export function EditStatusPageForm({
   const addMonitorMutation = api.statusPage.addMonitor.useMutation();
   const removeMonitorMutation = api.statusPage.removeMonitor.useMutation();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const onSubmit = async (values: z.infer<typeof editStatusPageSchema>) => {
     try {
       // Update the status page
       await updateStatusPageMutation.mutateAsync({
         id: statusPage.id,
-        name: formData.name,
-        description: formData.description,
+        name: values.name,
+        description: values.description,
       });
 
       // Handle monitor changes
@@ -116,13 +132,6 @@ export function EditStatusPageForm({
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
   const handleMonitorToggle = (monitorId: string) => {
     setSelectedMonitors((prev) =>
       prev.includes(monitorId)
@@ -138,84 +147,106 @@ export function EditStatusPageForm({
           <CardTitle>Status Page Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                placeholder="Public Status"
-                value={formData.name}
-                onChange={(e) => handleInputChange("name", e.target.value)}
-                required
-              />
-              <p className="text-muted-foreground text-sm">
-                The name of your status page
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="Our main service status page"
-                value={formData.description}
-                onChange={(e) =>
-                  handleInputChange("description", e.target.value)
-                }
-                rows={3}
-              />
-              <p className="text-muted-foreground text-sm">
-                A brief description of your status page
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <Label>Select Monitors</Label>
-              <div className="space-y-3">
-                {availableMonitors.map((monitor) => (
-                  <div key={monitor.id} className="flex items-center space-x-3">
-                    <Checkbox
-                      id={monitor.id}
-                      checked={selectedMonitors.includes(monitor.id)}
-                      onCheckedChange={() => handleMonitorToggle(monitor.id)}
-                    />
-                    <div className="flex-1">
-                      <label
-                        htmlFor={monitor.id}
-                        className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {monitor.name}
-                      </label>
-                      <p className="text-muted-foreground text-sm">
-                        {monitor.url}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="space-y-2">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          id="name"
+                          placeholder="Public Status"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <p className="text-muted-foreground text-sm">
+                  The name of your status page
+                </p>
               </div>
-              <p className="text-muted-foreground text-sm">
-                Choose which monitors to display on this status page
-              </p>
-            </div>
 
-            <div className="flex gap-4 pt-4">
-              <Button
-                type="submit"
-                isLoading={
-                  updateStatusPageMutation.isPending ||
-                  addMonitorMutation.isPending ||
-                  removeMonitorMutation.isPending
-                }
-                loadingText="Updating..."
-              >
-                <IconEdit className="mr-2 h-4 w-4" />
-                Update Status Page
-              </Button>
-              <Button type="button" variant="outline" asChild>
-                <Link href="/app/status-pages">Cancel</Link>
-              </Button>
-            </div>
-          </form>
+              <div className="space-y-2">
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          id="description"
+                          placeholder="Our main service status page"
+                          rows={3}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <p className="text-muted-foreground text-sm">
+                  A brief description of your status page
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <Label>Select Monitors</Label>
+                <div className="space-y-3">
+                  {availableMonitors.map((monitor) => (
+                    <div
+                      key={monitor.id}
+                      className="flex items-center space-x-3"
+                    >
+                      <Checkbox
+                        id={monitor.id}
+                        checked={selectedMonitors.includes(monitor.id)}
+                        onCheckedChange={() => handleMonitorToggle(monitor.id)}
+                      />
+                      <div className="flex-1">
+                        <label
+                          htmlFor={monitor.id}
+                          className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {monitor.name}
+                        </label>
+                        <p className="text-muted-foreground text-sm">
+                          {monitor.url}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-muted-foreground text-sm">
+                  Choose which monitors to display on this status page
+                </p>
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <Button
+                  type="submit"
+                  isLoading={
+                    updateStatusPageMutation.isPending ||
+                    addMonitorMutation.isPending ||
+                    removeMonitorMutation.isPending
+                  }
+                  loadingText="Updating..."
+                >
+                  <IconEdit className="mr-2 h-4 w-4" />
+                  Update Status Page
+                </Button>
+                <Button type="button" variant="outline" asChild>
+                  <Link href="/app/status-pages">Cancel</Link>
+                </Button>
+              </div>
+            </form>
+          </Form>
         </CardContent>
       </Card>
     </div>

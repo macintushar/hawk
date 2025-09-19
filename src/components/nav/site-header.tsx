@@ -7,6 +7,7 @@ import { GITHUB_URL, routes } from "@/constants";
 import { IconBrandGithub } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ThemeSwitcher } from "../theme/theme-switcher";
 
 export function SiteHeader() {
   const currentPath = usePathname();
@@ -37,6 +38,7 @@ export function SiteHeader() {
               <p className="sr-only text-sm">GitHub</p>
             </Link>
           </Button>
+          <ThemeSwitcher side="bottom" />
         </div>
       </div>
     </header>

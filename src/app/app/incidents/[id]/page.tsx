@@ -1,6 +1,9 @@
 "use client";
 
 import React from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   IconArrowLeft,
   IconTrash,
@@ -66,34 +77,38 @@ export default function EditIncidentPage() {
     },
   });
 
-  const [form, setForm] = React.useState({
-    title: "",
-    description: "",
-    status: "investigating" as
-      | "investigating"
-      | "identified"
-      | "monitoring"
-      | "resolved",
+  const editIncidentFormSchema = z.object({
+    title: z.string().min(1, "Title is required"),
+    description: z.string().optional(),
+    status: z.enum(["investigating", "identified", "monitoring", "resolved"]),
+  });
+
+  const form = useForm<z.infer<typeof editIncidentFormSchema>>({
+    resolver: zodResolver(editIncidentFormSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      status: "investigating",
+    },
   });
 
   React.useEffect(() => {
     if (incident) {
-      setForm({
+      form.reset({
         title: incident.title,
         description: incident.description ?? "",
         status: incident.status,
       });
     }
-  }, [incident]);
+  }, [incident, form]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (values: z.infer<typeof editIncidentFormSchema>) => {
     try {
       await updateIncidentMutation.mutateAsync({
         id: incidentId,
-        title: form.title,
-        description: form.description,
-        status: form.status,
+        title: values.title,
+        description: values.description,
+        status: values.status,
       });
     } catch {
       // no-op, handled in onError
@@ -184,82 +199,108 @@ export default function EditIncidentPage() {
             <CardTitle>Incident Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSave} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={form.title}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, title: e.target.value }))
-                  }
-                  required
-                />
-              </div>
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Title</FormLabel>
+                        <FormControl>
+                          <Input id="title" placeholder="" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, description: e.target.value }))
-                  }
-                  rows={4}
-                />
-              </div>
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea id="description" rows={4} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={form.status}
-                  onValueChange={(value) =>
-                    setForm((p) => ({ ...p, status: value as typeof p.status }))
-                  }
-                >
-                  <SelectTrigger id="status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="investigating">Investigating</SelectItem>
-                    <SelectItem value="identified">Identified</SelectItem>
-                    <SelectItem value="monitoring">Monitoring</SelectItem>
-                    <SelectItem value="resolved">Resolved</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger id="status">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="investigating">
+                              Investigating
+                            </SelectItem>
+                            <SelectItem value="identified">
+                              Identified
+                            </SelectItem>
+                            <SelectItem value="monitoring">
+                              Monitoring
+                            </SelectItem>
+                            <SelectItem value="resolved">Resolved</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-              <div className="flex gap-3 pt-2">
-                <Button
-                  type="submit"
-                  isLoading={updateIncidentMutation.isPending}
-                  loadingText="Saving..."
-                >
-                  <IconDeviceFloppy className="mr-2 h-4 w-4" />
-                  Save Changes
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleResolve}
-                  isLoading={resolveIncidentMutation.isPending}
-                  loadingText="Resolving..."
-                >
-                  <IconCheck className="mr-2 h-4 w-4" />
-                  Mark Resolved
-                </Button>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleDelete}
-                  isLoading={deleteIncidentMutation.isPending}
-                  loadingText="Deleting..."
-                >
-                  <IconTrash className="mr-2 h-4 w-4" />
-                  Delete
-                </Button>
-              </div>
-            </form>
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="submit"
+                    isLoading={updateIncidentMutation.isPending}
+                    loadingText="Saving..."
+                  >
+                    <IconDeviceFloppy className="mr-2 h-4 w-4" />
+                    Save Changes
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleResolve}
+                    isLoading={resolveIncidentMutation.isPending}
+                    loadingText="Resolving..."
+                  >
+                    <IconCheck className="mr-2 h-4 w-4" />
+                    Mark Resolved
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={handleDelete}
+                    isLoading={deleteIncidentMutation.isPending}
+                    loadingText="Deleting..."
+                  >
+                    <IconTrash className="mr-2 h-4 w-4" />
+                    Delete
+                  </Button>
+                </div>
+              </form>
+            </Form>
           </CardContent>
         </Card>
       </div>
