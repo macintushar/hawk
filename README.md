@@ -2,6 +2,8 @@
 
 Hawk is a monitoring tool to track the status of your websites and services.
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/macintushar/hawk)
+
 ## Features
 
 - Track the status of your websites and services
