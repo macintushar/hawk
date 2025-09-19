@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/trpc/ping.checkAll",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 5 * * *"
     }
   ]
 }
