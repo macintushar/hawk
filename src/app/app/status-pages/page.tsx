@@ -18,7 +18,7 @@ import { api } from "@/trpc/react";
 export default function StatusPagesPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: statusPages = [] } = api.statusPage.list.useQuery({
+  const { data: statusPages = [], isLoading } = api.statusPage.list.useQuery({
     includeMonitors: true,
   });
 
@@ -72,8 +72,10 @@ export default function StatusPagesPage() {
       </Card>
 
       {/* Status Pages Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredStatusPages.length > 0 ? (
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {isLoading ? (
+          <h1>Loading...</h1>
+        ) : filteredStatusPages.length > 0 ? (
           filteredStatusPages.map((page) => (
             <Card key={page.id} className="transition-shadow hover:shadow-md">
               <CardHeader>
