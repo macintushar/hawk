@@ -10,6 +10,12 @@ import {
   statusPage,
   statusPageMonitor,
 } from "@/server/db/schema";
+import {
+  sendSlackMessage,
+  formatMonitorDownMessage,
+  formatMonitorUpMessage,
+} from "@/lib/notifications/slack";
+import { notificationSettings } from "@/server/db/schema";
 
 export interface CheckResult {
   status: "up" | "down";
@@ -246,6 +252,25 @@ export class MonitoringService {
         monitorId,
       });
     }
+
+    // Notify via Slack if enabled for the monitor's owner
+    const ownerId = monitorDataForIncident[0].userId;
+    const settings = await db
+      .select()
+      .from(notificationSettings)
+      .where(eq(notificationSettings.userId, ownerId))
+      .limit(1);
+    const cfg = settings[0];
+    if (cfg?.slackEnabled && cfg.onMonitorDown) {
+      const text = formatMonitorDownMessage({
+        monitorName: monitorDataForIncident[0].name,
+        url: monitorDataForIncident[0].url,
+      });
+      await sendSlackMessage(cfg.slackWebhookUrl ?? undefined, {
+        text,
+        channel: cfg.slackChannel ?? undefined,
+      });
+    }
   }
 
   /**
@@ -270,6 +295,33 @@ export class MonitoringService {
           resolvedAt: utcNow(),
         })
         .where(eq(incident.id, incidentData.id));
+    }
+
+    // Notify via Slack if enabled for the monitor's owner
+    const monitorDataForIncident = await db
+      .select()
+      .from(monitor)
+      .where(eq(monitor.id, monitorId))
+      .limit(1);
+
+    if (monitorDataForIncident[0]) {
+      const ownerId = monitorDataForIncident[0].userId;
+      const settings = await db
+        .select()
+        .from(notificationSettings)
+        .where(eq(notificationSettings.userId, ownerId))
+        .limit(1);
+      const cfg = settings[0];
+      if (cfg?.slackEnabled && cfg.onMonitorUp) {
+        const text = formatMonitorUpMessage({
+          monitorName: monitorDataForIncident[0].name,
+          url: monitorDataForIncident[0].url,
+        });
+        await sendSlackMessage(cfg.slackWebhookUrl ?? undefined, {
+          text,
+          channel: cfg.slackChannel ?? undefined,
+        });
+      }
     }
   }
 

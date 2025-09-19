@@ -153,7 +153,6 @@ export default function NewIncidentPage() {
                     <SelectValue placeholder="Select a monitor (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No specific monitor</SelectItem>
                     {monitors.map((monitor) => (
                       <SelectItem key={monitor.id} value={monitor.id}>
                         {monitor.name}
@@ -169,16 +168,11 @@ export default function NewIncidentPage() {
               <div className="flex gap-4 pt-4">
                 <Button
                   type="submit"
-                  disabled={createIncidentMutation.isPending}
+                  isLoading={createIncidentMutation.isPending}
+                  loadingText="Creating..."
                 >
-                  {createIncidentMutation.isPending ? (
-                    "Creating..."
-                  ) : (
-                    <>
-                      <IconPlus className="mr-2 h-4 w-4" />
-                      Create Incident
-                    </>
-                  )}
+                  <IconPlus className="mr-2 h-4 w-4" />
+                  Create Incident
                 </Button>
                 <Button type="button" variant="outline" asChild>
                   <Link href="/app/incidents">Cancel</Link>

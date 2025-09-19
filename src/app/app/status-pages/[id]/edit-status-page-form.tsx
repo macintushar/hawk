@@ -201,22 +201,15 @@ export function EditStatusPageForm({
             <div className="flex gap-4 pt-4">
               <Button
                 type="submit"
-                disabled={
+                isLoading={
                   updateStatusPageMutation.isPending ||
                   addMonitorMutation.isPending ||
                   removeMonitorMutation.isPending
                 }
+                loadingText="Updating..."
               >
-                {updateStatusPageMutation.isPending ||
-                addMonitorMutation.isPending ||
-                removeMonitorMutation.isPending ? (
-                  "Updating..."
-                ) : (
-                  <>
-                    <IconEdit className="mr-2 h-4 w-4" />
-                    Update Status Page
-                  </>
-                )}
+                <IconEdit className="mr-2 h-4 w-4" />
+                Update Status Page
               </Button>
               <Button type="button" variant="outline" asChild>
                 <Link href="/app/status-pages">Cancel</Link>

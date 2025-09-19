@@ -6,6 +6,7 @@ import { statusRouter } from "./routers/status";
 import { pingRouter } from "./routers/ping";
 import { statusPageRouter } from "./routers/status-page";
 import { incidentRouter } from "./routers/incident";
+import { notificationsRouter } from "./routers/notifications";
 
 /**
  * This is the primary router for your server.
@@ -19,6 +20,7 @@ export const appRouter = createTRPCRouter({
   ping: pingRouter,
   statusPage: statusPageRouter,
   incident: incidentRouter,
+  notifications: notificationsRouter,
 });
 
 // export type definition of API

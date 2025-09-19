@@ -169,16 +169,11 @@ export default function NewMonitorPage() {
               <div className="flex gap-4 pt-4">
                 <Button
                   type="submit"
-                  disabled={createMonitorMutation.isPending}
+                  isLoading={createMonitorMutation.isPending}
+                  loadingText="Creating..."
                 >
-                  {createMonitorMutation.isPending ? (
-                    "Creating..."
-                  ) : (
-                    <>
-                      <IconPlus className="mr-2 h-4 w-4" />
-                      Create Monitor
-                    </>
-                  )}
+                  <IconPlus className="mr-2 h-4 w-4" />
+                  Create Monitor
                 </Button>
                 <Button type="button" variant="outline" asChild>
                   <Link href="/app/monitors">Cancel</Link>

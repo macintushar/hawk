@@ -37,9 +37,9 @@ export function MonitorCard({
   };
 
   return (
-    <Card className="transition-shadow hover:shadow-md">
+    <Card className="min-w-[240px] transition-shadow hover:shadow-md">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="space-y-1">
             <CardTitle className="text-lg">{name}</CardTitle>
             <div className="text-muted-foreground flex items-center gap-2 text-sm">

@@ -164,16 +164,11 @@ export default function NewStatusPagePage() {
               <div className="flex gap-4 pt-4">
                 <Button
                   type="submit"
-                  disabled={createStatusPageMutation.isPending}
+                  isLoading={createStatusPageMutation.isPending}
+                  loadingText="Creating..."
                 >
-                  {createStatusPageMutation.isPending ? (
-                    "Creating..."
-                  ) : (
-                    <>
-                      <IconPlus className="mr-2 h-4 w-4" />
-                      Create Status Page
-                    </>
-                  )}
+                  <IconPlus className="mr-2 h-4 w-4" />
+                  Create Status Page
                 </Button>
                 <Button type="button" variant="outline" asChild>
                   <Link href="/app/status-pages">Cancel</Link>

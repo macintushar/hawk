@@ -1,10 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -13,9 +19,20 @@ import {
   IconBrandSlack,
   IconTestPipe,
   IconCheck,
+  IconExternalLink,
 } from "@tabler/icons-react";
+import { api } from "@/trpc/react";
+import { toast } from "sonner";
+import Link from "next/link";
 
 export default function NotificationsPage() {
+  const { data: initialSettings, refetch } = api.notifications.get.useQuery(
+    undefined,
+    { refetchOnWindowFocus: false },
+  );
+  const saveMutation = api.notifications.save.useMutation();
+  const testSlackMutation = api.notifications.testSlack.useMutation();
+
   const [slackSettings, setSlackSettings] = useState({
     enabled: false,
     webhookUrl: "",
@@ -39,9 +56,31 @@ export default function NotificationsPage() {
     onIncidentResolved: true,
   });
 
+  useEffect(() => {
+    if (!initialSettings) return;
+    setSlackSettings({
+      enabled: initialSettings.slackEnabled ?? false,
+      webhookUrl: initialSettings.slackWebhookUrl ?? "",
+      channel: initialSettings.slackChannel ?? "#alerts",
+    });
+    setNotificationRules({
+      onMonitorDown: initialSettings.onMonitorDown ?? true,
+      onMonitorUp: initialSettings.onMonitorUp ?? false,
+      onIncidentCreated: initialSettings.onIncidentCreated ?? true,
+      onIncidentResolved: initialSettings.onIncidentResolved ?? true,
+    });
+  }, [initialSettings]);
+
   const handleSlackTest = async () => {
-    // TODO: Implement Slack test notification
-    console.log("Testing Slack notification...");
+    try {
+      await testSlackMutation.mutateAsync({
+        message: "Test notification from Hawk",
+      });
+      toast.success("Slack test notification sent");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to send Slack test";
+      toast.error(msg);
+    }
   };
 
   const handleEmailTest = async () => {
@@ -50,8 +89,22 @@ export default function NotificationsPage() {
   };
 
   const handleSave = async () => {
-    // TODO: Implement save functionality
-    console.log("Saving notification settings...");
+    try {
+      await saveMutation.mutateAsync({
+        slackEnabled: slackSettings.enabled,
+        slackWebhookUrl: slackSettings.webhookUrl || null,
+        slackChannel: slackSettings.channel || null,
+        onMonitorDown: notificationRules.onMonitorDown,
+        onMonitorUp: notificationRules.onMonitorUp,
+        onIncidentCreated: notificationRules.onIncidentCreated,
+        onIncidentResolved: notificationRules.onIncidentResolved,
+      });
+      await refetch();
+      toast.success("Notification settings saved");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to save settings";
+      toast.error(msg);
+    }
   };
 
   return (
@@ -161,15 +214,23 @@ export default function NotificationsPage() {
                 <IconBrandSlack className="h-5 w-5" />
                 Slack Integration
               </CardTitle>
+              <CardDescription className="flex gap-2">
+                Send notifications to Slack channels.{" "}
+                <Link
+                  href="https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span className="flex items-center gap-1 underline">
+                    Guide
+                    <IconExternalLink className="h-4 w-4" />
+                  </span>
+                </Link>
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Enable Slack Notifications</Label>
-                  <p className="text-muted-foreground text-sm">
-                    Send notifications to Slack channels
-                  </p>
-                </div>
+                <Label>Enable Slack Notifications</Label>
                 <Switch
                   checked={slackSettings.enabled}
                   onCheckedChange={(checked) =>
@@ -217,7 +278,12 @@ export default function NotificationsPage() {
                     </p>
                   </div>
 
-                  <Button onClick={handleSlackTest} variant="outline">
+                  <Button
+                    onClick={handleSlackTest}
+                    variant="outline"
+                    isLoading={testSlackMutation.isPending}
+                    loadingText="Testing..."
+                  >
                     <IconTestPipe className="mr-2 h-4 w-4" />
                     Test Slack Notification
                   </Button>
@@ -363,7 +429,11 @@ export default function NotificationsPage() {
       </Tabs>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave}>
+        <Button
+          onClick={handleSave}
+          isLoading={saveMutation.isPending}
+          loadingText="Saving..."
+        >
           <IconCheck className="mr-2 h-4 w-4" />
           Save Settings
         </Button>
