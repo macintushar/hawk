@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import * as React from "react";
 import { IconInnerShadowTop } from "@tabler/icons-react";
 
@@ -14,11 +15,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { ThemeSwitcher } from "@/components/theme/theme-switcher";
+
 import { routes } from "@/constants";
-import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const path = usePathname();
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -37,11 +39,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavGroup items={routes.main} />
-        <NavGroup items={routes.secondary} className="mt-auto" />
+        <NavGroup items={routes.main} path={path} />
+        <NavGroup items={routes.secondary} className="mt-auto" path={path} />
       </SidebarContent>
       <SidebarFooter>
-        <ThemeSwitcher />
         <NavUser />
       </SidebarFooter>
     </Sidebar>

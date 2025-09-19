@@ -55,7 +55,7 @@ export function RecentActivity({
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Recent Monitors</CardTitle>

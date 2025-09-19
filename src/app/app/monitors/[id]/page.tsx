@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,6 +74,8 @@ export default function MonitorDetailPage() {
     checkMonitorMutation.mutate({ monitorId });
   };
 
+  const [isRetrying, setIsRetrying] = React.useState(false);
+
   if (monitorError) {
     return (
       <div className="space-y-6">
@@ -88,7 +91,19 @@ export default function MonitorDetailPage() {
           <p className="text-destructive">
             Error loading monitor: {monitorError.message}
           </p>
-          <Button onClick={() => void refetchMonitor()} className="mt-4">
+          <Button
+            onClick={async () => {
+              setIsRetrying(true);
+              try {
+                await refetchMonitor();
+              } finally {
+                setIsRetrying(false);
+              }
+            }}
+            className="mt-4"
+            isLoading={isRetrying}
+            loadingText="Retrying..."
+          >
             <IconRefresh className="mr-2 h-4 w-4" />
             Retry
           </Button>
@@ -154,11 +169,10 @@ export default function MonitorDetailPage() {
           <Button
             variant="outline"
             onClick={handleCheck}
-            disabled={checkMonitorMutation.isPending}
+            isLoading={checkMonitorMutation.isPending}
+            loadingText="Checking..."
           >
-            <IconRefresh
-              className={`mr-2 h-4 w-4 ${checkMonitorMutation.isPending ? "animate-spin" : ""}`}
-            />
+            <IconRefresh className="mr-2 h-4 w-4" />
             Check Now
           </Button>
           <Button variant="outline" asChild>
@@ -167,7 +181,12 @@ export default function MonitorDetailPage() {
               Edit
             </Link>
           </Button>
-          <Button variant="destructive" onClick={handleDelete}>
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            isLoading={deleteMonitorMutation.isPending}
+            loadingText="Deleting..."
+          >
             <IconTrash className="mr-2 h-4 w-4" />
             Delete
           </Button>

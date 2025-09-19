@@ -170,3 +170,34 @@ export const monitorCheck = sqliteTable("monitor_check", {
     .default(sql`(unixepoch())`)
     .notNull(),
 });
+
+export const notificationSettings = sqliteTable("notification_settings", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  slackEnabled: integer("slack_enabled", { mode: "boolean" })
+    .default(false)
+    .notNull(),
+  slackWebhookUrl: text("slack_webhook_url"),
+  slackChannel: text("slack_channel"),
+  onMonitorDown: integer("on_monitor_down", { mode: "boolean" })
+    .default(true)
+    .notNull(),
+  onMonitorUp: integer("on_monitor_up", { mode: "boolean" })
+    .default(false)
+    .notNull(),
+  onIncidentCreated: integer("on_incident_created", { mode: "boolean" })
+    .default(true)
+    .notNull(),
+  onIncidentResolved: integer("on_incident_resolved", { mode: "boolean" })
+    .default(true)
+    .notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .default(sql`(unixepoch())`)
+    .notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .default(sql`(unixepoch())`)
+    .$onUpdate(() => /* @__PURE__ */ utcNow())
+    .notNull(),
+});

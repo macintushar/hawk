@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -36,8 +37,9 @@ export function SignUpForm() {
       password: "",
     },
   });
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   async function onSubmit(values: z.infer<typeof signUpSchema>) {
-    console.log(values);
+    setIsSubmitting(true);
     try {
       const res = await signUp.email({
         name: values.name,
@@ -58,6 +60,8 @@ export function SignUpForm() {
         description:
           error instanceof Error ? error.message : "An error occurred",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   }
   return (
@@ -119,7 +123,12 @@ export function SignUpForm() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
+              <Button
+                type="submit"
+                className="w-full"
+                isLoading={isSubmitting}
+                loadingText="Signing up..."
+              >
                 Sign up
               </Button>
             </div>

@@ -14,11 +14,13 @@ import type { VariantProps } from "class-variance-authority";
 type ThemeSwitcherProps = {
   variant?: VariantProps<typeof buttonVariants>["variant"];
   size?: VariantProps<typeof buttonVariants>["size"];
+  side?: VariantProps<typeof DropdownMenuContent>["side"];
 };
 
 export function ThemeSwitcher({
   variant = "ghost",
   size = "icon",
+  side = "right",
 }: ThemeSwitcherProps) {
   const theme = useTheme();
   const ThemeIcon = (theme: string) => {
@@ -38,7 +40,7 @@ export function ThemeSwitcher({
           {ThemeIcon(theme.theme ?? "system")}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="right">
+      <DropdownMenuContent side={side}>
         <DropdownMenuItem onClick={() => theme.setTheme("light")}>
           {ThemeIcon("light")} Light
         </DropdownMenuItem>

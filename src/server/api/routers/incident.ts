@@ -4,8 +4,14 @@ import { randomBytes } from "crypto";
 
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
-import { incident, statusPage, monitor } from "@/server/db/schema";
+import {
+  incident,
+  statusPage,
+  monitor,
+  notificationSettings,
+} from "@/server/db/schema";
 import { utcNow } from "@/lib/date-utils";
+import { sendSlackMessage } from "@/lib/notifications/slack";
 import {
   createIncidentSchema,
   updateIncidentSchema,
@@ -141,6 +147,21 @@ export const incidentRouter = createTRPCRouter({
         })
         .returning();
 
+      // Notify if rule enabled
+      const settings = await db
+        .select()
+        .from(notificationSettings)
+        .where(eq(notificationSettings.userId, user.id))
+        .limit(1);
+      const cfg = settings[0];
+      if (cfg?.slackEnabled && cfg.onIncidentCreated && newIncident[0]) {
+        const text = `:memo: Incident created: ${newIncident[0].title}`;
+        await sendSlackMessage(cfg.slackWebhookUrl ?? undefined, {
+          text,
+          channel: cfg.slackChannel ?? undefined,
+        });
+      }
+
       return newIncident[0];
     }),
 
@@ -225,6 +246,21 @@ export const incidentRouter = createTRPCRouter({
         })
         .where(eq(incident.id, input.id))
         .returning();
+
+      // Notify if rule enabled
+      const settings = await db
+        .select()
+        .from(notificationSettings)
+        .where(eq(notificationSettings.userId, user.id))
+        .limit(1);
+      const cfg = settings[0];
+      if (cfg?.slackEnabled && cfg.onIncidentResolved && resolvedIncident[0]) {
+        const text = `:white_check_mark: Incident resolved: ${resolvedIncident[0].title}`;
+        await sendSlackMessage(cfg.slackWebhookUrl ?? undefined, {
+          text,
+          channel: cfg.slackChannel ?? undefined,
+        });
+      }
 
       return resolvedIncident[0];
     }),

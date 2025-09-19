@@ -37,15 +37,21 @@ export function MonitorCard({
   };
 
   return (
-    <Card className="transition-shadow hover:shadow-md">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
+    <Card className="min-w-[240px] transition-shadow hover:shadow-md">
+      <CardHeader>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="flex space-x-2">
             <CardTitle className="text-lg">{name}</CardTitle>
-            <div className="text-muted-foreground flex items-center gap-2 text-sm">
-              <IconExternalLink className="h-4 w-4" />
-              <span className="max-w-[200px] truncate">{url}</span>
-            </div>
+            <Link href={url} target="_blank" rel="noopener noreferrer">
+              <Button
+                variant="link"
+                size="icon"
+                className="text-muted-foreground"
+                asChild
+              >
+                <IconExternalLink className="h-4 w-4" />
+              </Button>
+            </Link>
           </div>
           <StatusBadge status={status} />
         </div>
