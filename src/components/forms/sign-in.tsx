@@ -50,7 +50,7 @@ export function SignInForm() {
 
       if (res.data?.user.id) {
         toast.success("Signed in successfully");
-        router.push("/admin");
+        router.push("/app/dashboard");
       }
     } catch (error) {
       toast.error("An error occurred", {

@@ -16,7 +16,7 @@ export default async function Home() {
           Welcome to Hawk
         </h1>
         <div className="flex flex-col items-center gap-2">
-          <Link href={isSignedIn ? "/admin" : "/sign-in"} prefetch>
+          <Link href={isSignedIn ? "/app/dashboard" : "/sign-in"} prefetch>
             <p className="text-2xl text-white">
               {isSignedIn ? "View Dashboard" : "Get Started"}
             </p>
