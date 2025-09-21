@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, gte } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
@@ -59,6 +59,10 @@ export const monitorRouter = createTRPCRouter({
         .from(monitor)
         .where(eq(monitor.userId, user.id))
         .orderBy(desc(monitor.createdAt));
+
+      if (input.limit) {
+        return monitors.slice(0, input.limit);
+      }
 
       return monitors;
     }),
@@ -205,7 +209,8 @@ export const monitorRouter = createTRPCRouter({
     .input(
       z.object({
         monitorId: z.string(),
-        limit: z.number().min(1).max(100).default(50),
+        limit: z.number().min(1).max(100).default(50).optional(),
+        days: z.number().min(1).max(90).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -226,12 +231,35 @@ export const monitorRouter = createTRPCRouter({
       }
 
       // Get check history
-      const checkHistory = await db
-        .select()
-        .from(monitorCheck)
-        .where(eq(monitorCheck.monitorId, input.monitorId))
-        .orderBy(desc(monitorCheck.checkedAt))
-        .limit(input.limit);
+      const baseWhere = eq(monitorCheck.monitorId, input.monitorId);
+
+      // If a days range is provided, filter from now - days
+      const days = input.days;
+
+      let checkHistory;
+      if (days) {
+        checkHistory = await db
+          .select()
+          .from(monitorCheck)
+          .where(
+            and(
+              baseWhere,
+              gte(
+                monitorCheck.checkedAt,
+                new Date(Date.now() - days * 24 * 60 * 60 * 1000),
+              ),
+            ),
+          )
+          .orderBy(desc(monitorCheck.checkedAt))
+          .limit(5000);
+      } else {
+        checkHistory = await db
+          .select()
+          .from(monitorCheck)
+          .where(baseWhere)
+          .orderBy(desc(monitorCheck.checkedAt))
+          .limit(input.limit ?? 50);
+      }
 
       return checkHistory;
     }),

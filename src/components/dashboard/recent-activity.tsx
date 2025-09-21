@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MonitorCard } from "@/components/shared/monitor-card";
 import { IncidentCard } from "@/components/shared/incident-card";
 import {
   MonitorCardSkeleton,
@@ -10,10 +9,10 @@ import {
 } from "@/components/shared/loading-skeleton";
 import { IconPlus, IconArrowRight } from "@tabler/icons-react";
 import Link from "next/link";
-import type { RouterOutputs } from "@/trpc/react";
 
-type Monitor = RouterOutputs["monitor"]["list"][0];
-type Incident = RouterOutputs["incident"]["list"][0];
+import { DataTable } from "../data-table";
+import type { Incident, Monitor } from "@/types";
+import { monitorColumns } from "./dashboard-tables-columns";
 
 interface RecentActivityProps {
   monitors?: Monitor[];
@@ -55,7 +54,7 @@ export function RecentActivity({
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Recent Monitors</CardTitle>
@@ -68,10 +67,7 @@ export function RecentActivity({
         </CardHeader>
         <CardContent className="space-y-4">
           {monitors && monitors.length > 0 ? (
-            monitors.slice(0, 3).map((monitor) => {
-              if (!monitor?.id) return null;
-              return <MonitorCard key={monitor.id} {...monitor} />;
-            })
+            <DataTable columns={monitorColumns} data={monitors ?? []} />
           ) : (
             <div className="py-8 text-center">
               <p className="text-muted-foreground mb-4">No monitors yet</p>

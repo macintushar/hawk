@@ -1,18 +1,23 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusBadge } from "@/components/shared/status-badge";
-import { IncidentStatusBadge } from "@/components/shared/incident-status-badge";
 import {
   IconCheck,
   IconX,
   IconAlertCircle,
   IconClock,
+  IconHeartRateMonitor,
 } from "@tabler/icons-react";
-import { api } from "@/trpc/server";
+
 import type { Metadata } from "next";
+import Link from "next/link";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { IncidentStatusBadge } from "@/components/shared/incident-status-badge";
 import { ThemeSwitcher } from "@/components/theme/theme-switcher";
 import FormatTimestamp from "@/components/format-timestamp";
-import Link from "next/link";
+import { MonitorRuns, MonitorUptime } from "./monitor-runs";
+
 import { PRODUCT_URL } from "@/constants";
+
+import { api } from "@/trpc/server";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -69,69 +74,71 @@ export default async function PublicStatusPage({
 
   return (
     <div className="bg-background min-h-screen">
-      <div className="container mx-auto max-w-4xl px-4 py-8">
+      <div className="container mx-auto max-w-4xl px-4 py-10">
         {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="mb-2 text-4xl font-bold">{statusPage.name}</h1>
+        <div className="mb-6 text-center">
+          <h1 className="mb-2 text-3xl font-semibold">{statusPage.name}</h1>
           {statusPage.description && (
-            <p className="text-muted-foreground text-lg">
-              {statusPage.description}
-            </p>
+            <p className="text-muted-foreground">{statusPage.description}</p>
           )}
         </div>
 
-        {/* Overall Status */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-center gap-3">
+        {/* Overall Status Banner */}
+        <div className="bg-muted/30 mb-8 rounded-lg border px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
               {overallStatus === "up" ? (
-                <IconCheck className="h-8 w-8 text-green-600" />
+                <IconCheck className="h-5 w-5 text-green-500" />
               ) : overallStatus === "down" ? (
-                <IconX className="h-8 w-8 text-red-600" />
+                <IconX className="h-5 w-5 text-red-500" />
               ) : (
-                <IconAlertCircle className="h-8 w-8 text-yellow-600" />
+                <IconAlertCircle className="h-5 w-5 text-yellow-500" />
               )}
-              <span className="text-2xl">
+              <span className="font-medium">
                 {overallStatus === "up"
                   ? "All Systems Operational"
                   : "Service Disruption"}
               </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-center">
-            <StatusBadge status={overallStatus} className="px-4 py-2 text-lg" />
-          </CardContent>
-        </Card>
+            </div>
+            <span className="text-muted-foreground text-xs tracking-wide uppercase">
+              {new Date().toUTCString().replace(/GMT$/, "(UTC)")}
+            </span>
+          </div>
+        </div>
 
         {/* Services */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Services</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <IconHeartRateMonitor className="h-5 w-5" />
+              Monitors
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="mb-10 space-y-6">
               {monitors?.map((monitor) => (
-                <div
-                  key={monitor.id}
-                  className="flex items-center justify-between rounded-lg border p-4"
-                >
-                  <div className="flex items-center gap-3">
-                    {monitor.status === "up" ? (
-                      <IconCheck className="h-5 w-5 text-green-600" />
-                    ) : (
-                      <IconX className="h-5 w-5 text-red-600" />
-                    )}
-                    <div>
-                      <div className="font-medium">{monitor.name}</div>
-                      <div className="text-muted-foreground text-sm">
-                        <span className="text-muted-foreground">
-                          Last checked:
-                          <FormatTimestamp timestamp={monitor.lastChecked} />
-                        </span>
-                      </div>
+                <div key={monitor.id} className="w-full">
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {monitor.status === "up" ? (
+                        <IconCheck className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <IconX className="h-4 w-4 text-red-500" />
+                      )}
+                      <span className="font-medium">{monitor.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground text-xs">
+                        Uptime
+                      </span>
+                      <MonitorUptime id={monitor.id} />
                     </div>
                   </div>
-                  <StatusBadge status={monitor.status} />
+                  <MonitorRuns id={monitor.id} />
+                  <div className="text-muted-foreground mt-1 flex items-center justify-between text-[10px]">
+                    <span>45 days ago</span>
+                    <span>Today</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -139,7 +146,7 @@ export default async function PublicStatusPage({
         </Card>
 
         {/* Incidents */}
-        {incidents.length > 0 && (
+        {incidents.length > 0 ? (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -186,18 +193,32 @@ export default async function PublicStatusPage({
               </div>
             </CardContent>
           </Card>
+        ) : (
+          <div className="rounded-lg border px-6 py-10 text-center">
+            <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full border">
+              <IconAlertCircle className="text-muted-foreground h-5 w-5" />
+            </div>
+            <div className="font-medium">No recent notices</div>
+            <p className="text-muted-foreground text-sm">
+              There have been no reports within the last 7 days.
+            </p>
+          </div>
         )}
 
         {/* Footer */}
-        <div className="text-muted-foreground mt-8 flex items-center justify-between gap-2 text-center text-sm">
-          <FormatTimestamp timestamp={new Date()} />
+        <div className="text-muted-foreground mt-8 grid grid-cols-3 items-center text-center text-sm">
+          <div className="justify-start-safe flex">
+            <FormatTimestamp timestamp={new Date()} />
+          </div>
           <p>
             Powered by{" "}
             <Link href={PRODUCT_URL} rel="noopener noreferrer" target="_blank">
               Hawk
             </Link>
           </p>
-          <ThemeSwitcher variant="outline" />
+          <div className="flex justify-end-safe">
+            <ThemeSwitcher variant="outline" />
+          </div>
         </div>
       </div>
     </div>

@@ -33,12 +33,19 @@ export type DashboardStats = {
   lastChecked: Date | null;
 };
 
+export type UptimeStatus = "up" | "down" | "unknown";
+export type IncidentStatus =
+  | "investigating"
+  | "identified"
+  | "monitoring"
+  | "resolved";
+
 // Component prop types
 export type MonitorCardProps = {
   id: string;
   name: string;
   url: string;
-  status: "up" | "down" | "unknown";
+  status: UptimeStatus;
   lastChecked?: Date | null;
   responseTime?: number | null;
   threshold: number;
@@ -48,7 +55,7 @@ export type IncidentCardProps = {
   id: string;
   title: string;
   description?: string | null;
-  status: "investigating" | "identified" | "monitoring" | "resolved";
+  status: IncidentStatus;
   startedAt: Date;
   resolvedAt?: Date | null;
   statusPageName?: string | null;

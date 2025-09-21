@@ -1,13 +1,10 @@
 "use client";
-
-import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -34,7 +31,7 @@ export default function NewMonitorPage() {
   const createMonitorSchema = z.object({
     name: z.string().min(1, "Name is required"),
     url: z.string().url("Invalid URL"),
-    threshold: z.number().int().min(1).max(10).default(3),
+    threshold: z.number().int().min(1).max(10),
     cronExpression: z.string(),
   });
 

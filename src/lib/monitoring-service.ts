@@ -16,6 +16,7 @@ import {
   formatMonitorUpMessage,
 } from "@/lib/notifications/slack";
 import { notificationSettings } from "@/server/db/schema";
+import type { UptimeStatus } from "@/types";
 
 export interface CheckResult {
   status: "up" | "down";
@@ -127,7 +128,7 @@ export class MonitoringService {
       .orderBy(desc(monitorCheck.checkedAt))
       .limit(threshold);
 
-    let newStatus: "up" | "down" | "unknown" = currentStatus;
+    let newStatus: UptimeStatus = currentStatus;
 
     if (recentChecks.length === 0) {
       // No checks yet, keep current status
@@ -169,7 +170,7 @@ export class MonitoringService {
     // Always update lastChecked, and update status if it changed
     const updateData: {
       lastChecked: Date;
-      status?: "up" | "down" | "unknown";
+      status?: UptimeStatus;
     } = {
       lastChecked: utcNow(),
     };

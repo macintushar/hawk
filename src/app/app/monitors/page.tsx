@@ -4,10 +4,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  MonitorCard,
-  MonitorCardSkeleton,
-} from "@/components/shared/monitor-card";
+
 import { StatusBadge } from "@/components/shared/status-badge";
 import {
   IconPlus,
@@ -18,6 +15,8 @@ import {
 import Link from "next/link";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
+import { DataTable } from "@/components/data-table";
+import { monitorColumns } from "@/components/dashboard/dashboard-tables-columns";
 
 export default function MonitorsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -216,13 +215,9 @@ export default function MonitorsPage() {
       {/* Monitors Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
-          Array.from({ length: 6 }).map((_, i) => (
-            <MonitorCardSkeleton key={i} />
-          ))
+          <h1>Loading...</h1>
         ) : filteredMonitors.length > 0 ? (
-          filteredMonitors.map((monitor) => (
-            <MonitorCard key={monitor.id} {...monitor} />
-          ))
+          <DataTable columns={monitorColumns} data={filteredMonitors} />
         ) : (
           <div className="col-span-full py-12 text-center">
             <p className="text-muted-foreground mb-4">
