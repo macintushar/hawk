@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import * as React from "react";
-import { IconInnerShadowTop } from "@tabler/icons-react";
 
 import { NavUser } from "@/components/nav/nav-user";
 import { NavGroup } from "@/components/nav/nav-group";
@@ -32,7 +31,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <Link href="/app/dashboard">
-                {/* <IconInnerShadowTop className="!size-5" /> */}
                 <Image src="/logo.svg" alt="Hawk" width={32} height={32} />
                 <span className="text-base font-semibold">Hawk</span>
               </Link>
