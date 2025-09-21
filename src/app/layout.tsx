@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   description:
     "Hawk is a platform for monitoring your website and services. Get notified when your website is down or when your service is not working as expected.",
   icons: [{ rel: "icon", url: "/favicon.svg" }],
+  openGraph: {
+    images: "/hawk-og.png",
+  },
 };
 
 const dmSans = DM_Sans({
