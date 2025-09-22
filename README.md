@@ -1,7 +1,9 @@
-<center>
+<p align="center">
    <img src="./public/logo-full.svg" alt="Hawk" width="240" />
-   <h3><i>Monitoring for your stack, within your stack.</i></h3>
-</center>
+   <h3 align="center"><i>Monitoring for your stack, within your stack.</i></h3>
+</p>
+
+> **Note**: Hawk is still in development. Features may change or break.
 
 Hawk is an open‑source, self‑hosted monitoring platform. Track uptime and performance for your services, get alerted on incidents, and publish beautiful public status pages — all in one place.
 
@@ -77,7 +79,7 @@ The app will be available at `http://localhost:3060` in development.
 - **Receive alerts**: Configure Slack webhooks in the Notifications screen
 - **Publish status pages**: Group monitors and share a public URL with your users
 
-See `SLACK.md` for a step‑by‑step guide to configuring Slack Incoming Webhooks.
+See `docs/SLACK.md` for a step‑by‑step guide to configuring Slack Incoming Webhooks.
 
 ## Deployment
 
