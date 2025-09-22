@@ -18,6 +18,7 @@ import { MonitorRuns, MonitorUptime } from "./monitor-runs";
 import { PRODUCT_URL } from "@/constants";
 
 import { api } from "@/trpc/server";
+import { Separator } from "@/components/ui/separator";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -52,17 +53,6 @@ export default async function PublicStatusPage({
     status: monitor.status,
     lastChecked: monitor.lastChecked ?? monitor.updatedAt,
   }));
-
-  const incidents =
-    statusPageData?.incidents.map((incident) => ({
-      id: incident.id,
-      title: incident.title,
-      description: incident.description,
-      status: incident.status,
-      startedAt: incident.startedAt,
-      resolvedAt: incident.resolvedAt,
-      monitorName: incident.monitorName,
-    })) ?? [];
 
   const status: string[] = [];
   monitors?.every((m) => status.push(m.status));
@@ -129,16 +119,16 @@ export default async function PublicStatusPage({
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground text-xs">
-                        Uptime
+                        Uptime: <MonitorUptime id={monitor.id} />
                       </span>
-                      <MonitorUptime id={monitor.id} />
                     </div>
                   </div>
                   <MonitorRuns id={monitor.id} />
-                  <div className="text-muted-foreground mt-1 flex items-center justify-between text-[10px]">
+                  <div className="text-muted-foreground mt-1 flex items-center justify-between text-xs">
                     <span>45 days ago</span>
                     <span>Today</span>
                   </div>
+                  <Separator className="my-2" />
                 </div>
               ))}
             </div>
@@ -146,7 +136,7 @@ export default async function PublicStatusPage({
         </Card>
 
         {/* Incidents */}
-        {incidents.length > 0 ? (
+        {statusPageData.incidents.length > 0 ? (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -156,7 +146,7 @@ export default async function PublicStatusPage({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {incidents.map((incident) => (
+                {statusPageData.incidents.map((incident) => (
                   <div key={incident.id} className="rounded-lg border p-4">
                     <div className="mb-2 flex items-start justify-between">
                       <div>

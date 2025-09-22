@@ -1,7 +1,7 @@
 // Example model schema from the Drizzle docs
 // https://orm.drizzle.team/docs/sql-schema-declaration
 
-import { sql } from "drizzle-orm";
+import { sql, relations } from "drizzle-orm";
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { utcNow } from "@/lib/date-utils";
 
@@ -201,3 +201,67 @@ export const notificationSettings = sqliteTable("notification_settings", {
     .$onUpdate(() => /* @__PURE__ */ utcNow())
     .notNull(),
 });
+
+// Relations
+export const userRelations = relations(user, ({ many }) => ({
+  monitors: many(monitor),
+  statusPages: many(statusPage),
+  sessions: many(session),
+  accounts: many(account),
+  notifications: many(notificationSettings),
+}));
+
+export const statusPageRelations = relations(statusPage, ({ one, many }) => ({
+  user: one(user, { fields: [statusPage.userId], references: [user.id] }),
+  incidents: many(incident),
+  statusPageMonitors: many(statusPageMonitor),
+}));
+
+export const monitorRelations = relations(monitor, ({ one, many }) => ({
+  user: one(user, { fields: [monitor.userId], references: [user.id] }),
+  monitorChecks: many(monitorCheck),
+  incidents: many(incident),
+  statusPageMonitors: many(statusPageMonitor),
+}));
+
+export const statusPageMonitorRelations = relations(
+  statusPageMonitor,
+  ({ one }) => ({
+    statusPage: one(statusPage, {
+      fields: [statusPageMonitor.statusPageId],
+      references: [statusPage.id],
+    }),
+    monitor: one(monitor, {
+      fields: [statusPageMonitor.monitorId],
+      references: [monitor.id],
+    }),
+  }),
+);
+
+export const incidentRelations = relations(incident, ({ one }) => ({
+  statusPage: one(statusPage, {
+    fields: [incident.statusPageId],
+    references: [statusPage.id],
+  }),
+  monitor: one(monitor, {
+    fields: [incident.monitorId],
+    references: [monitor.id],
+  }),
+}));
+
+export const monitorCheckRelations = relations(monitorCheck, ({ one }) => ({
+  monitor: one(monitor, {
+    fields: [monitorCheck.monitorId],
+    references: [monitor.id],
+  }),
+}));
+
+export const notificationSettingsRelations = relations(
+  notificationSettings,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [notificationSettings.userId],
+      references: [user.id],
+    }),
+  }),
+);

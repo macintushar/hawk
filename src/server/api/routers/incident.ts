@@ -1,15 +1,10 @@
 import { z } from "zod";
-import { eq, and, desc, not } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
-import {
-  incident,
-  statusPage,
-  monitor,
-  notificationSettings,
-} from "@/server/db/schema";
+import { incident } from "@/server/db/schema";
 import { utcNow } from "@/lib/date-utils";
 import { sendSlackMessage } from "@/lib/notifications/slack";
 import {
@@ -28,37 +23,34 @@ export const incidentRouter = createTRPCRouter({
       const { session } = ctx;
       const user = session.user;
 
-      // Build where conditions
-      const whereConditions = [eq(statusPage.userId, user.id)];
+      const incidentsRaw = await db.query.incident.findMany({
+        with: {
+          statusPage: true,
+          monitor: true,
+        },
+        orderBy: (i, { desc }) => [desc(i.startedAt)],
+      });
 
-      if (input.statusPageId) {
-        whereConditions.push(eq(incident.statusPageId, input.statusPageId));
-      }
-
-      if (input.status) {
-        whereConditions.push(eq(incident.status, input.status));
-      }
-
-      const incidents = await db
-        .select({
-          id: incident.id,
-          title: incident.title,
-          description: incident.description,
-          status: incident.status,
-          statusPageId: incident.statusPageId,
-          monitorId: incident.monitorId,
-          startedAt: incident.startedAt,
-          resolvedAt: incident.resolvedAt,
-          createdAt: incident.createdAt,
-          updatedAt: incident.updatedAt,
-          statusPageName: statusPage.name,
-          monitorName: monitor.name,
-        })
-        .from(incident)
-        .innerJoin(statusPage, eq(incident.statusPageId, statusPage.id))
-        .leftJoin(monitor, eq(incident.monitorId, monitor.id))
-        .where(and(...whereConditions))
-        .orderBy(desc(incident.startedAt));
+      const incidents = incidentsRaw
+        .filter((i) => i.statusPage.userId === user.id)
+        .filter(
+          (i) => !input.statusPageId || i.statusPageId === input.statusPageId,
+        )
+        .filter((i) => !input.status || i.status === input.status)
+        .map((i) => ({
+          id: i.id,
+          title: i.title,
+          description: i.description,
+          status: i.status,
+          statusPageId: i.statusPageId,
+          monitorId: i.monitorId,
+          startedAt: i.startedAt,
+          resolvedAt: i.resolvedAt ?? null,
+          createdAt: i.createdAt,
+          updatedAt: i.updatedAt,
+          statusPageName: i.statusPage.name,
+          monitorName: i.monitor?.name ?? null,
+        }));
 
       return incidents;
     }),
@@ -70,32 +62,29 @@ export const incidentRouter = createTRPCRouter({
       const { session } = ctx;
       const user = session.user;
 
-      const incidentData = await db
-        .select({
-          id: incident.id,
-          title: incident.title,
-          description: incident.description,
-          status: incident.status,
-          statusPageId: incident.statusPageId,
-          monitorId: incident.monitorId,
-          startedAt: incident.startedAt,
-          resolvedAt: incident.resolvedAt,
-          createdAt: incident.createdAt,
-          updatedAt: incident.updatedAt,
-          statusPageName: statusPage.name,
-          monitorName: monitor.name,
-        })
-        .from(incident)
-        .innerJoin(statusPage, eq(incident.statusPageId, statusPage.id))
-        .leftJoin(monitor, eq(incident.monitorId, monitor.id))
-        .where(and(eq(incident.id, input.id), eq(statusPage.userId, user.id)))
-        .limit(1);
+      const inc = await db.query.incident.findFirst({
+        where: (i, { eq }) => eq(i.id, input.id),
+        with: { statusPage: true, monitor: true },
+      });
 
-      if (!incidentData[0]) {
+      if (!inc || inc.statusPage.userId !== user.id) {
         throw new Error("Incident not found");
       }
 
-      return incidentData[0];
+      return {
+        id: inc.id,
+        title: inc.title,
+        description: inc.description,
+        status: inc.status,
+        statusPageId: inc.statusPageId,
+        monitorId: inc.monitorId,
+        startedAt: inc.startedAt,
+        resolvedAt: inc.resolvedAt ?? null,
+        createdAt: inc.createdAt,
+        updatedAt: inc.updatedAt,
+        statusPageName: inc.statusPage.name,
+        monitorName: inc.monitor?.name ?? null,
+      };
     }),
 
   // Create a new incident
@@ -106,32 +95,23 @@ export const incidentRouter = createTRPCRouter({
       const user = session.user;
 
       // Verify status page belongs to user
-      const statusPageData = await db
-        .select()
-        .from(statusPage)
-        .where(
-          and(
-            eq(statusPage.id, input.statusPageId),
-            eq(statusPage.userId, user.id),
-          ),
-        )
-        .limit(1);
+      const statusPageData = await db.query.statusPage.findFirst({
+        where: (sp, { and, eq }) =>
+          and(eq(sp.id, input.statusPageId), eq(sp.userId, user.id)),
+      });
 
-      if (!statusPageData[0]) {
+      if (!statusPageData) {
         throw new Error("Status page not found");
       }
 
       // Verify monitor belongs to user if provided
       if (input.monitorId) {
-        const monitorData = await db
-          .select()
-          .from(monitor)
-          .where(
-            and(eq(monitor.id, input.monitorId), eq(monitor.userId, user.id)),
-          )
-          .limit(1);
+        const monitorData = await db.query.monitor.findFirst({
+          where: (m, { and, eq }) =>
+            and(eq(m.id, input.monitorId!), eq(m.userId, user.id)),
+        });
 
-        if (!monitorData[0]) {
+        if (!monitorData) {
           throw new Error("Monitor not found");
         }
       }
@@ -148,12 +128,9 @@ export const incidentRouter = createTRPCRouter({
         .returning();
 
       // Notify if rule enabled
-      const settings = await db
-        .select()
-        .from(notificationSettings)
-        .where(eq(notificationSettings.userId, user.id))
-        .limit(1);
-      const cfg = settings[0];
+      const cfg = await db.query.notificationSettings.findFirst({
+        where: (ns, { eq }) => eq(ns.userId, user.id),
+      });
       if (cfg?.slackEnabled && cfg.onIncidentCreated && newIncident[0]) {
         const text = `:memo: Incident created: ${newIncident[0].title}`;
         await sendSlackMessage(cfg.slackWebhookUrl ?? undefined, {
@@ -174,14 +151,12 @@ export const incidentRouter = createTRPCRouter({
       const { id, ...updateData } = input;
 
       // Check if incident exists and belongs to user
-      const existingIncident = await db
-        .select()
-        .from(incident)
-        .innerJoin(statusPage, eq(incident.statusPageId, statusPage.id))
-        .where(and(eq(incident.id, id), eq(statusPage.userId, user.id)))
-        .limit(1);
+      const existingIncident = await db.query.incident.findFirst({
+        where: (i, { eq }) => eq(i.id, id),
+        with: { statusPage: true },
+      });
 
-      if (!existingIncident[0]) {
+      if (!existingIncident || existingIncident.statusPage.userId !== user.id) {
         throw new Error("Incident not found");
       }
 
@@ -202,14 +177,12 @@ export const incidentRouter = createTRPCRouter({
       const user = session.user;
 
       // Check if incident exists and belongs to user
-      const existingIncident = await db
-        .select()
-        .from(incident)
-        .innerJoin(statusPage, eq(incident.statusPageId, statusPage.id))
-        .where(and(eq(incident.id, input.id), eq(statusPage.userId, user.id)))
-        .limit(1);
+      const existingIncident = await db.query.incident.findFirst({
+        where: (i, { eq }) => eq(i.id, input.id),
+        with: { statusPage: true },
+      });
 
-      if (!existingIncident[0]) {
+      if (!existingIncident || existingIncident.statusPage.userId !== user.id) {
         throw new Error("Incident not found");
       }
 
@@ -227,14 +200,12 @@ export const incidentRouter = createTRPCRouter({
       const user = session.user;
 
       // Check if incident exists and belongs to user
-      const existingIncident = await db
-        .select()
-        .from(incident)
-        .innerJoin(statusPage, eq(incident.statusPageId, statusPage.id))
-        .where(and(eq(incident.id, input.id), eq(statusPage.userId, user.id)))
-        .limit(1);
+      const existingIncident = await db.query.incident.findFirst({
+        where: (i, { eq }) => eq(i.id, input.id),
+        with: { statusPage: true },
+      });
 
-      if (!existingIncident[0]) {
+      if (!existingIncident || existingIncident.statusPage.userId !== user.id) {
         throw new Error("Incident not found");
       }
 
@@ -248,12 +219,9 @@ export const incidentRouter = createTRPCRouter({
         .returning();
 
       // Notify if rule enabled
-      const settings = await db
-        .select()
-        .from(notificationSettings)
-        .where(eq(notificationSettings.userId, user.id))
-        .limit(1);
-      const cfg = settings[0];
+      const cfg = await db.query.notificationSettings.findFirst({
+        where: (ns, { eq }) => eq(ns.userId, user.id),
+      });
       if (cfg?.slackEnabled && cfg.onIncidentResolved && resolvedIncident[0]) {
         const text = `:white_check_mark: Incident resolved: ${resolvedIncident[0].title}`;
         await sendSlackMessage(cfg.slackWebhookUrl ?? undefined, {
@@ -280,46 +248,36 @@ export const incidentRouter = createTRPCRouter({
       const user = session.user;
 
       // Verify status page belongs to user
-      const statusPageData = await db
-        .select()
-        .from(statusPage)
-        .where(
-          and(
-            eq(statusPage.id, input.statusPageId),
-            eq(statusPage.userId, user.id),
-          ),
-        )
-        .limit(1);
+      const statusPageData = await db.query.statusPage.findFirst({
+        where: (sp, { and, eq }) =>
+          and(eq(sp.id, input.statusPageId), eq(sp.userId, user.id)),
+      });
 
-      if (!statusPageData[0]) {
+      if (!statusPageData) {
         throw new Error("Status page not found");
       }
 
-      // Build where conditions
-      const whereConditions = [eq(incident.statusPageId, input.statusPageId)];
+      const incidentsRaw = await db.query.incident.findMany({
+        where: (i, { eq }) => eq(i.statusPageId, input.statusPageId),
+        with: { monitor: true },
+        orderBy: (i, { desc }) => [desc(i.startedAt)],
+      });
 
-      if (input.status) {
-        whereConditions.push(eq(incident.status, input.status));
-      }
-
-      const incidents = await db
-        .select({
-          id: incident.id,
-          title: incident.title,
-          description: incident.description,
-          status: incident.status,
-          statusPageId: incident.statusPageId,
-          monitorId: incident.monitorId,
-          startedAt: incident.startedAt,
-          resolvedAt: incident.resolvedAt,
-          createdAt: incident.createdAt,
-          updatedAt: incident.updatedAt,
-          monitorName: monitor.name,
-        })
-        .from(incident)
-        .leftJoin(monitor, eq(incident.monitorId, monitor.id))
-        .where(and(...whereConditions))
-        .orderBy(desc(incident.startedAt));
+      const incidents = incidentsRaw
+        .filter((i) => !input.status || i.status === input.status)
+        .map((i) => ({
+          id: i.id,
+          title: i.title,
+          description: i.description,
+          status: i.status,
+          statusPageId: i.statusPageId,
+          monitorId: i.monitorId,
+          startedAt: i.startedAt,
+          resolvedAt: i.resolvedAt ?? null,
+          createdAt: i.createdAt,
+          updatedAt: i.updatedAt,
+          monitorName: i.monitor?.name ?? null,
+        }));
 
       return incidents;
     }),
@@ -331,35 +289,30 @@ export const incidentRouter = createTRPCRouter({
       const { session } = ctx;
       const user = session.user;
 
-      // Build where conditions
-      const whereConditions = [
-        eq(statusPage.userId, user.id),
-        not(eq(incident.status, "resolved")),
-      ];
+      const incidentsRaw = await db.query.incident.findMany({
+        where: (i, { not, eq }) => not(eq(i.status, "resolved")),
+        with: { statusPage: true, monitor: true },
+        orderBy: (i, { desc }) => [desc(i.startedAt)],
+      });
 
-      if (input.statusPageId) {
-        whereConditions.push(eq(incident.statusPageId, input.statusPageId));
-      }
-
-      const activeIncidents = await db
-        .select({
-          id: incident.id,
-          title: incident.title,
-          description: incident.description,
-          status: incident.status,
-          statusPageId: incident.statusPageId,
-          monitorId: incident.monitorId,
-          startedAt: incident.startedAt,
-          createdAt: incident.createdAt,
-          updatedAt: incident.updatedAt,
-          statusPageName: statusPage.name,
-          monitorName: monitor.name,
-        })
-        .from(incident)
-        .innerJoin(statusPage, eq(incident.statusPageId, statusPage.id))
-        .leftJoin(monitor, eq(incident.monitorId, monitor.id))
-        .where(and(...whereConditions))
-        .orderBy(desc(incident.startedAt));
+      const activeIncidents = incidentsRaw
+        .filter((i) => i.statusPage.userId === user.id)
+        .filter(
+          (i) => !input.statusPageId || i.statusPageId === input.statusPageId,
+        )
+        .map((i) => ({
+          id: i.id,
+          title: i.title,
+          description: i.description,
+          status: i.status,
+          statusPageId: i.statusPageId,
+          monitorId: i.monitorId,
+          startedAt: i.startedAt,
+          createdAt: i.createdAt,
+          updatedAt: i.updatedAt,
+          statusPageName: i.statusPage.name,
+          monitorName: i.monitor?.name ?? null,
+        }));
 
       return activeIncidents;
     }),

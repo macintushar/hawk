@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { IncidentCard } from "@/components/shared/incident-card";
 import {
   MonitorCardSkeleton,
   IncidentCardSkeleton,
@@ -12,7 +11,8 @@ import Link from "next/link";
 
 import { DataTable } from "../data-table";
 import type { Incident, Monitor } from "@/types";
-import { monitorColumns } from "./dashboard-tables-columns";
+import { monitorColumns } from "@/components/tables/monitor-columns";
+import { incidentsColumns } from "../tables/incidents-columns";
 
 interface RecentActivityProps {
   monitors?: Monitor[];
@@ -94,10 +94,7 @@ export function RecentActivity({
         </CardHeader>
         <CardContent className="space-y-4">
           {incidents && incidents.length > 0 ? (
-            incidents.slice(0, 3).map((incident) => {
-              if (!incident?.id) return null;
-              return <IncidentCard key={incident.id} {...incident} />;
-            })
+            <DataTable columns={incidentsColumns} data={incidents ?? []} />
           ) : (
             <div className="py-8 text-center">
               <p className="text-muted-foreground mb-4">No incidents yet</p>

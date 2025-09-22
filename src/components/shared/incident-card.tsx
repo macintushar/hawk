@@ -11,6 +11,7 @@ import {
 } from "@tabler/icons-react";
 import Link from "next/link";
 import type { RouterOutputs } from "@/trpc/react";
+import { formatDuration } from "@/lib/date-utils";
 
 type Incident = RouterOutputs["incident"]["list"][0];
 
@@ -24,18 +25,6 @@ export function IncidentCard({
   statusPageName,
   monitorName,
 }: Incident) {
-  const formatDuration = (start: Date, end?: Date | null) => {
-    const endTime = end ?? new Date();
-    const diff = endTime.getTime() - start.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
-  };
-
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
       month: "short",

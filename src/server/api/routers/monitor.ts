@@ -24,41 +24,22 @@ export const monitorRouter = createTRPCRouter({
 
       if (input.statusPageId) {
         // Get monitors for a specific status page
-        const monitors = await db
-          .select({
-            id: monitor.id,
-            name: monitor.name,
-            slug: monitor.slug,
-            url: monitor.url,
-            status: monitor.status,
-            lastChecked: monitor.lastChecked,
-            threshold: monitor.threshold,
-            cronExpression: monitor.cronExpression,
-            createdAt: monitor.createdAt,
-            updatedAt: monitor.updatedAt,
-          })
-          .from(monitor)
-          .innerJoin(
-            statusPageMonitor,
-            eq(monitor.id, statusPageMonitor.monitorId),
-          )
-          .where(
-            and(
-              eq(monitor.userId, user.id),
-              eq(statusPageMonitor.statusPageId, input.statusPageId),
-            ),
-          )
-          .orderBy(desc(monitor.createdAt));
-
+        const spm = await db.query.statusPageMonitor.findMany({
+          where: (spm, { eq }) => eq(spm.statusPageId, input.statusPageId!),
+          with: { monitor: true },
+        });
+        const monitors = spm
+          .map((r) => r.monitor)
+          .filter((m) => m.userId === user.id)
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
         return monitors;
       }
 
       // Get all monitors for the user
-      const monitors = await db
-        .select()
-        .from(monitor)
-        .where(eq(monitor.userId, user.id))
-        .orderBy(desc(monitor.createdAt));
+      const monitors = await db.query.monitor.findMany({
+        where: (m, { eq }) => eq(m.userId, user.id),
+        orderBy: (m, { desc }) => [desc(m.createdAt)],
+      });
 
       if (input.limit) {
         return monitors.slice(0, input.limit);
@@ -74,17 +55,16 @@ export const monitorRouter = createTRPCRouter({
       const { session } = ctx;
       const user = session.user;
 
-      const monitorData = await db
-        .select()
-        .from(monitor)
-        .where(and(eq(monitor.id, input.id), eq(monitor.userId, user.id)))
-        .limit(1);
+      const monitorData = await db.query.monitor.findFirst({
+        where: (m, { and, eq }) =>
+          and(eq(m.id, input.id), eq(m.userId, user.id)),
+      });
 
-      if (!monitorData[0]) {
+      if (!monitorData) {
         throw new Error("Monitor not found");
       }
 
-      return monitorData[0];
+      return monitorData;
     }),
 
   // Create a new monitor
@@ -136,32 +116,28 @@ export const monitorRouter = createTRPCRouter({
       const { id, ...updateData } = input;
 
       // Check if monitor exists and belongs to user
-      const existingMonitor = await db
-        .select()
-        .from(monitor)
-        .where(and(eq(monitor.id, id), eq(monitor.userId, user.id)))
-        .limit(1);
+      const existingMonitor = await db.query.monitor.findFirst({
+        where: (m, { and, eq }) => and(eq(m.id, id), eq(m.userId, user.id)),
+      });
 
-      if (!existingMonitor[0]) {
+      if (!existingMonitor) {
         throw new Error("Monitor not found");
       }
 
       // Generate new slug if name is being updated
-      let slug = existingMonitor[0].slug;
-      if (updateData.name && updateData.name !== existingMonitor[0].name) {
+      let slug = existingMonitor.slug;
+      if (updateData.name && updateData.name !== existingMonitor.name) {
         slug = updateData.name
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/(^-|-$)/g, "");
 
         // Check if new slug already exists
-        const slugExists = await db
-          .select()
-          .from(monitor)
-          .where(and(eq(monitor.slug, slug), eq(monitor.id, id)))
-          .limit(1);
+        const slugExists = await db.query.monitor.findFirst({
+          where: (m, { and, eq }) => and(eq(m.slug, slug), eq(m.id, id)),
+        });
 
-        if (slugExists[0]) {
+        if (slugExists) {
           throw new Error("A monitor with this name already exists");
         }
       }
@@ -186,13 +162,12 @@ export const monitorRouter = createTRPCRouter({
       const user = session.user;
 
       // Check if monitor exists and belongs to user
-      const existingMonitor = await db
-        .select()
-        .from(monitor)
-        .where(and(eq(monitor.id, input.id), eq(monitor.userId, user.id)))
-        .limit(1);
+      const existingMonitor = await db.query.monitor.findFirst({
+        where: (m, { and, eq }) =>
+          and(eq(m.id, input.id), eq(m.userId, user.id)),
+      });
 
-      if (!existingMonitor[0]) {
+      if (!existingMonitor) {
         throw new Error("Monitor not found");
       }
 
@@ -218,15 +193,12 @@ export const monitorRouter = createTRPCRouter({
       const user = session.user;
 
       // Verify monitor belongs to user
-      const monitorData = await db
-        .select()
-        .from(monitor)
-        .where(
-          and(eq(monitor.id, input.monitorId), eq(monitor.userId, user.id)),
-        )
-        .limit(1);
+      const monitorData = await db.query.monitor.findFirst({
+        where: (m, { and, eq }) =>
+          and(eq(m.id, input.monitorId), eq(m.userId, user.id)),
+      });
 
-      if (!monitorData[0]) {
+      if (!monitorData) {
         throw new Error("Monitor not found");
       }
 
@@ -238,27 +210,24 @@ export const monitorRouter = createTRPCRouter({
 
       let checkHistory;
       if (days) {
-        checkHistory = await db
-          .select()
-          .from(monitorCheck)
-          .where(
+        checkHistory = await db.query.monitorCheck.findMany({
+          where: (mc, { and, gte, eq }) =>
             and(
-              baseWhere,
+              eq(mc.monitorId, input.monitorId),
               gte(
-                monitorCheck.checkedAt,
+                mc.checkedAt,
                 new Date(Date.now() - days * 24 * 60 * 60 * 1000),
               ),
             ),
-          )
-          .orderBy(desc(monitorCheck.checkedAt))
-          .limit(5000);
+          orderBy: (mc, { desc }) => [desc(mc.checkedAt)],
+          limit: 5000,
+        });
       } else {
-        checkHistory = await db
-          .select()
-          .from(monitorCheck)
-          .where(baseWhere)
-          .orderBy(desc(monitorCheck.checkedAt))
-          .limit(input.limit ?? 50);
+        checkHistory = await db.query.monitorCheck.findMany({
+          where: (mc, { eq }) => eq(mc.monitorId, input.monitorId),
+          orderBy: (mc, { desc }) => [desc(mc.checkedAt)],
+          limit: input.limit ?? 50,
+        });
       }
 
       return checkHistory;

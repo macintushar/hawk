@@ -10,7 +10,7 @@ import {
   IconSearch,
   IconEdit,
   IconTrash,
-  IconEye,
+  IconWorld,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { api } from "@/trpc/react";
@@ -107,7 +107,7 @@ export default function StatusPagesPage() {
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/status/${page.slug}`} target="_blank">
-                        <IconEye className="mr-2 h-4 w-4" />
+                        <IconWorld className="mr-2 h-4 w-4" />
                         View
                       </Link>
                     </Button>

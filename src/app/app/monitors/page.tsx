@@ -16,7 +16,7 @@ import Link from "next/link";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
 import { DataTable } from "@/components/data-table";
-import { monitorColumns } from "@/components/dashboard/dashboard-tables-columns";
+import { monitorColumns } from "@/components/tables/monitor-columns";
 
 export default function MonitorsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -213,7 +213,7 @@ export default function MonitorsPage() {
       </Card>
 
       {/* Monitors Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="w-full">
         {isLoading ? (
           <h1>Loading...</h1>
         ) : filteredMonitors.length > 0 ? (

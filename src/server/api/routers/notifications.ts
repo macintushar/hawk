@@ -12,13 +12,11 @@ export const notificationsRouter = createTRPCRouter({
     const { session } = ctx;
     const user = session.user;
 
-    const existing = await db
-      .select()
-      .from(notificationSettings)
-      .where(eq(notificationSettings.userId, user.id))
-      .limit(1);
+    const existing = await db.query.notificationSettings.findFirst({
+      where: (ns, { eq }) => eq(ns.userId, user.id),
+    });
 
-    if (existing[0]) return existing[0];
+    if (existing) return existing;
 
     // Return sensible defaults if none exist
     return {
@@ -52,13 +50,11 @@ export const notificationsRouter = createTRPCRouter({
       const { session } = ctx;
       const user = session.user;
 
-      const existing = await db
-        .select()
-        .from(notificationSettings)
-        .where(eq(notificationSettings.userId, user.id))
-        .limit(1);
+      const existing = await db.query.notificationSettings.findFirst({
+        where: (ns, { eq }) => eq(ns.userId, user.id),
+      });
 
-      if (existing[0]) {
+      if (existing) {
         const updated = await db
           .update(notificationSettings)
           .set({
@@ -102,13 +98,9 @@ export const notificationsRouter = createTRPCRouter({
       const { session } = ctx;
       const user = session.user;
 
-      const existing = await db
-        .select()
-        .from(notificationSettings)
-        .where(eq(notificationSettings.userId, user.id))
-        .limit(1);
-
-      const settings = existing[0];
+      const settings = await db.query.notificationSettings.findFirst({
+        where: (ns, { eq }) => eq(ns.userId, user.id),
+      });
       if (!settings?.slackEnabled) {
         throw new Error("Slack notifications are disabled");
       }

@@ -99,6 +99,7 @@ export const getStatusPagesSchema = z.object({
 
 export const getIncidentsSchema = z.object({
   statusPageId: z.string().optional(),
+  limit: z.number().optional(),
   status: z
     .enum(["investigating", "identified", "monitoring", "resolved"])
     .optional(),

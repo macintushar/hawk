@@ -1,3 +1,5 @@
+import dayjs from "dayjs";
+
 /**
  * Date utilities for consistent UTC timestamp handling
  */
@@ -30,4 +32,16 @@ export const fromUtcTimestamp = (timestamp: number): Date => {
  */
 export const utcNowISO = (): string => {
   return new Date().toISOString();
+};
+
+export const formatDuration = (start: Date, end?: Date | null) => {
+  const endTime = end ?? new Date();
+  const duration = dayjs(endTime).diff(dayjs(start));
+  const hours = Math.floor(duration / (1000 * 60 * 60));
+  const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m`;
 };

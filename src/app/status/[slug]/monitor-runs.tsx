@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/chart";
 import { api } from "@/trpc/react";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+dayjs.extend(utc);
 
 export const description = "Monitor daily activity heatmap";
 
@@ -23,8 +25,9 @@ type MonitorRunsProps = {
   id: string;
 };
 
+const DAYS = 45;
+
 export function MonitorRuns({ id }: MonitorRunsProps) {
-  const DAYS = 45;
   const { data: checkHistory = [] } = api.monitor.getCheckHistory.useQuery({
     monitorId: id,
     days: DAYS,
@@ -120,7 +123,6 @@ export function MonitorRuns({ id }: MonitorRunsProps) {
 }
 
 export function MonitorUptime({ id }: { id: string }) {
-  const DAYS = 45;
   const { data: checkHistory = [] } = api.monitor.getCheckHistory.useQuery({
     monitorId: id,
     days: DAYS,
@@ -129,7 +131,9 @@ export function MonitorUptime({ id }: { id: string }) {
   const total = checkHistory.length;
   const failed = checkHistory.filter((c) => c.status === "down").length;
   const success = total - failed;
-  const uptime = total === 0 ? 100 : Math.round((success / total) * 100);
+  const uptime = total === 0 ? 100 : (success / total) * 100;
 
-  return <span className="text-muted-foreground text-sm">{uptime}%</span>;
+  return (
+    <span className="text-muted-foreground text-xs">{uptime.toFixed(2)}%</span>
+  );
 }
