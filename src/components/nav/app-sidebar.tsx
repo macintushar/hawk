@@ -30,9 +30,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <Link href="/app/dashboard">
+              <Link href="/app/dashboard" className="flex items-center gap-2">
                 <Image src="/logo.svg" alt="Hawk" width={32} height={32} />
-                <span className="text-base font-semibold">Hawk</span>
+                <span className="text-base font-semibold">hawk</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
