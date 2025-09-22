@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { eq, and, desc, gte } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
-import { monitor, statusPageMonitor, monitorCheck } from "@/server/db/schema";
+import { monitor } from "@/server/db/schema";
 import { utcNow } from "@/lib/date-utils";
 import {
   createMonitorSchema,
@@ -201,9 +201,6 @@ export const monitorRouter = createTRPCRouter({
       if (!monitorData) {
         throw new Error("Monitor not found");
       }
-
-      // Get check history
-      const baseWhere = eq(monitorCheck.monitorId, input.monitorId);
 
       // If a days range is provided, filter from now - days
       const days = input.days;

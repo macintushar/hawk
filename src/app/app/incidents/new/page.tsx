@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -69,7 +68,7 @@ export default function NewIncidentPage() {
     try {
       createIncidentMutation.mutate({
         ...values,
-        monitorId: values.monitorId || undefined,
+        monitorId: values.monitorId ?? undefined,
       });
     } catch (error) {
       console.error("Error creating incident:", error);

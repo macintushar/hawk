@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 import {
@@ -8,12 +8,7 @@ import {
   publicProcedure,
 } from "@/server/api/trpc";
 import { db } from "@/server/db";
-import {
-  statusPage,
-  statusPageMonitor,
-  monitor,
-  incident,
-} from "@/server/db/schema";
+import { statusPage, statusPageMonitor } from "@/server/db/schema";
 import {
   createStatusPageSchema,
   updateStatusPageSchema,

@@ -1,15 +1,9 @@
-import { eq, and, desc, not } from "drizzle-orm";
+import { eq, and, not } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 import { db } from "@/server/db";
 import { utcNow } from "@/lib/date-utils";
-import {
-  monitor,
-  monitorCheck,
-  incident,
-  statusPage,
-  statusPageMonitor,
-} from "@/server/db/schema";
+import { monitor, monitorCheck, incident } from "@/server/db/schema";
 import {
   sendSlackMessage,
   formatMonitorDownMessage,
