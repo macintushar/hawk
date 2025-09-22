@@ -1,7 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import * as React from "react";
-import { IconInnerShadowTop } from "@tabler/icons-react";
 
 import { NavUser } from "@/components/nav/nav-user";
 import { NavGroup } from "@/components/nav/nav-group";
@@ -14,11 +14,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { ThemeSwitcher } from "@/components/theme/theme-switcher";
+
 import { routes } from "@/constants";
-import Link from "next/link";
+import { usePathname } from "next/navigation";
+import Image from "next/image";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const path = usePathname();
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -28,20 +30,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <Link href="/app/dashboard">
-                <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Hawk</span>
+              <Link href="/app/dashboard" className="flex items-center gap-2">
+                <Image src="/logo.svg" alt="Hawk" width={32} height={32} />
+                <span className="text-base font-semibold">hawk</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavGroup items={routes.main} />
-        <NavGroup items={routes.secondary} className="mt-auto" />
+        <NavGroup items={routes.main} path={path} />
+        <NavGroup items={routes.secondary} className="mt-auto" path={path} />
       </SidebarContent>
       <SidebarFooter>
-        <ThemeSwitcher />
         <NavUser />
       </SidebarFooter>
     </Sidebar>

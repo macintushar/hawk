@@ -10,12 +10,12 @@ export default function Dashboard() {
     data: monitorsData,
     isLoading: isLoadingMonitors,
     error: monitorsError,
-  } = api.monitor.list.useQuery({});
+  } = api.monitor.list.useQuery({ limit: 3 });
   const {
     data: incidentsData,
     isLoading: isLoadingIncidents,
     error: incidentsError,
-  } = api.incident.list.useQuery({});
+  } = api.incident.list.useQuery({ limit: 3 });
 
   if (isLoadingMonitors || isLoadingIncidents) {
     return <div>Loading...</div>;
@@ -33,7 +33,7 @@ export default function Dashboard() {
         (i: unknown) => (i as { status: string }).status !== "resolved",
       ).length ?? 0,
     averageUptime: 99.2,
-    lastChecked: new Date(),
+    lastChecked: monitorsData?.[0]?.lastChecked ?? new Date(),
   };
 
   return (

@@ -6,6 +6,7 @@ import {
   IconHeartRateMonitor,
   IconHelp,
   IconSettings,
+  IconBook,
 } from "@tabler/icons-react";
 import type { NavGroup } from "./types";
 
@@ -45,6 +46,11 @@ export const routes: NavGroup = {
       title: "Settings",
       url: "/app/settings",
       icon: IconSettings,
+    },
+    {
+      title: "Documentation",
+      url: "/docs",
+      icon: IconBook,
     },
     {
       title: "Get Help",

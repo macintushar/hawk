@@ -1,15 +1,16 @@
-import { eq, and, desc, not } from "drizzle-orm";
+import { eq, and, not } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 import { db } from "@/server/db";
 import { utcNow } from "@/lib/date-utils";
+import { monitor, monitorCheck, incident } from "@/server/db/schema";
 import {
-  monitor,
-  monitorCheck,
-  incident,
-  statusPage,
-  statusPageMonitor,
-} from "@/server/db/schema";
+  sendSlackMessage,
+  formatMonitorDownMessage,
+  formatMonitorUpMessage,
+} from "@/lib/notifications/slack";
+import { notificationSettings } from "@/server/db/schema";
+import type { UptimeStatus } from "@/types";
 
 export interface CheckResult {
   status: "up" | "down";
@@ -23,13 +24,11 @@ export class MonitoringService {
    * Perform an HTTP check for a monitor
    */
   async checkMonitor(monitorId: string): Promise<CheckResult> {
-    const monitorData = await db
-      .select()
-      .from(monitor)
-      .where(eq(monitor.id, monitorId))
-      .limit(1);
+    const monitorData = await db.query.monitor.findFirst({
+      where: (m, { eq }) => eq(m.id, monitorId),
+    });
 
-    if (!monitorData[0]) {
+    if (!monitorData) {
       throw new Error("Monitor not found");
     }
 
@@ -37,7 +36,7 @@ export class MonitoringService {
     let result: CheckResult;
 
     try {
-      const response = await fetch(monitorData[0].url, {
+      const response = await fetch(monitorData.url, {
         method: "GET",
         headers: {
           "User-Agent": "Hawk-Monitor/1.0",
@@ -100,28 +99,25 @@ export class MonitoringService {
    * Update monitor status based on recent check results and threshold
    */
   private async updateMonitorStatus(monitorId: string): Promise<void> {
-    const monitorData = await db
-      .select()
-      .from(monitor)
-      .where(eq(monitor.id, monitorId))
-      .limit(1);
+    const monitorData = await db.query.monitor.findFirst({
+      where: (m, { eq }) => eq(m.id, monitorId),
+    });
 
-    if (!monitorData[0]) {
+    if (!monitorData) {
       return;
     }
 
-    const threshold = monitorData[0].threshold;
-    const currentStatus = monitorData[0].status;
+    const threshold = monitorData.threshold;
+    const currentStatus = monitorData.status;
 
     // Get the last N check results (where N is the threshold)
-    const recentChecks = await db
-      .select()
-      .from(monitorCheck)
-      .where(eq(monitorCheck.monitorId, monitorId))
-      .orderBy(desc(monitorCheck.checkedAt))
-      .limit(threshold);
+    const recentChecks = await db.query.monitorCheck.findMany({
+      where: (mc, { eq }) => eq(mc.monitorId, monitorId),
+      orderBy: (mc, { desc }) => [desc(mc.checkedAt)],
+      limit: threshold,
+    });
 
-    let newStatus: "up" | "down" | "unknown" = currentStatus;
+    let newStatus: UptimeStatus = currentStatus;
 
     if (recentChecks.length === 0) {
       // No checks yet, keep current status
@@ -163,7 +159,7 @@ export class MonitoringService {
     // Always update lastChecked, and update status if it changed
     const updateData: {
       lastChecked: Date;
-      status?: "up" | "down" | "unknown";
+      status?: UptimeStatus;
     } = {
       lastChecked: utcNow(),
     };
@@ -188,62 +184,64 @@ export class MonitoringService {
    * Create an incident when a monitor goes down
    */
   private async createIncident(monitorId: string): Promise<void> {
-    const monitorData = await db
-      .select()
-      .from(monitor)
-      .where(eq(monitor.id, monitorId))
-      .limit(1);
+    const monitorData = await db.query.monitor.findFirst({
+      where: (m, { eq }) => eq(m.id, monitorId),
+    });
 
-    if (!monitorData[0]) {
+    if (!monitorData) {
       return;
     }
 
     // Check if there's already an active incident for this monitor
-    const existingIncident = await db
-      .select()
-      .from(incident)
-      .where(
-        and(
-          eq(incident.monitorId, monitorId),
-          not(eq(incident.status, "resolved" as const)),
-        ),
-      )
-      .limit(1);
+    const existingIncident = await db.query.incident.findFirst({
+      where: (i, { and, eq, not }) =>
+        and(eq(i.monitorId, monitorId), not(eq(i.status, "resolved"))),
+    });
 
-    if (existingIncident[0]) {
+    if (existingIncident) {
       return; // Don't create duplicate incidents
     }
 
     // Get monitor data for incident creation
-    const monitorDataForIncident = await db
-      .select()
-      .from(monitor)
-      .where(eq(monitor.id, monitorId))
-      .limit(1);
+    const monitorDataForIncident = await db.query.monitor.findFirst({
+      where: (m, { eq }) => eq(m.id, monitorId),
+    });
 
-    if (!monitorDataForIncident[0]) {
+    if (!monitorDataForIncident) {
       return;
     }
 
     // Get status pages that include this monitor
-    const statusPages = await db
-      .select({ id: statusPage.id })
-      .from(statusPage)
-      .innerJoin(
-        statusPageMonitor,
-        eq(statusPage.id, statusPageMonitor.statusPageId),
-      )
-      .where(eq(statusPageMonitor.monitorId, monitorId));
+    const statusPages = await db.query.statusPageMonitor.findMany({
+      where: (spm, { eq }) => eq(spm.monitorId, monitorId),
+      columns: { statusPageId: true },
+    });
 
     // Create incidents for each status page
-    for (const statusPage of statusPages) {
+    for (const spm of statusPages) {
       await db.insert(incident).values({
         id: randomBytes(16).toString("hex"),
-        title: `${monitorDataForIncident[0].name} is down`,
-        description: `The monitor for ${monitorDataForIncident[0].url} is currently down.`,
+        title: `${monitorDataForIncident.name} is down`,
+        description: `The monitor for ${monitorDataForIncident.url} is currently down.`,
         status: "investigating",
-        statusPageId: statusPage.id,
+        statusPageId: spm.statusPageId,
         monitorId,
+      });
+    }
+
+    // Notify via Slack if enabled for the monitor's owner
+    const ownerId = monitorDataForIncident.userId;
+    const cfg = await db.query.notificationSettings.findFirst({
+      where: (ns, { eq }) => eq(ns.userId, ownerId),
+    });
+    if (cfg?.slackEnabled && cfg.onMonitorDown) {
+      const text = formatMonitorDownMessage({
+        monitorName: monitorDataForIncident.name,
+        url: monitorDataForIncident.url,
+      });
+      await sendSlackMessage(cfg.slackWebhookUrl ?? undefined, {
+        text,
+        channel: cfg.slackChannel ?? undefined,
       });
     }
   }
@@ -270,6 +268,33 @@ export class MonitoringService {
           resolvedAt: utcNow(),
         })
         .where(eq(incident.id, incidentData.id));
+    }
+
+    // Notify via Slack if enabled for the monitor's owner
+    const monitorDataForIncident = await db
+      .select()
+      .from(monitor)
+      .where(eq(monitor.id, monitorId))
+      .limit(1);
+
+    if (monitorDataForIncident[0]) {
+      const ownerId = monitorDataForIncident[0].userId;
+      const settings = await db
+        .select()
+        .from(notificationSettings)
+        .where(eq(notificationSettings.userId, ownerId))
+        .limit(1);
+      const cfg = settings[0];
+      if (cfg?.slackEnabled && cfg.onMonitorUp) {
+        const text = formatMonitorUpMessage({
+          monitorName: monitorDataForIncident[0].name,
+          url: monitorDataForIncident[0].url,
+        });
+        await sendSlackMessage(cfg.slackWebhookUrl ?? undefined, {
+          text,
+          channel: cfg.slackChannel ?? undefined,
+        });
+      }
     }
   }
 

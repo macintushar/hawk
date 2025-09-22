@@ -2,9 +2,10 @@
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import type { IncidentStatus } from "@/types";
 
 interface IncidentStatusBadgeProps {
-  status: "investigating" | "identified" | "monitoring" | "resolved";
+  status: IncidentStatus;
   className?: string;
 }
 

@@ -2,9 +2,10 @@
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import type { UptimeStatus } from "@/types";
 
 interface StatusBadgeProps {
-  status: "up" | "down" | "unknown";
+  status: UptimeStatus;
   className?: string;
 }
 

@@ -10,7 +10,7 @@ import {
   IconSearch,
   IconEdit,
   IconTrash,
-  IconEye,
+  IconWorld,
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { api } from "@/trpc/react";
@@ -18,7 +18,7 @@ import { api } from "@/trpc/react";
 export default function StatusPagesPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: statusPages = [] } = api.statusPage.list.useQuery({
+  const { data: statusPages = [], isLoading } = api.statusPage.list.useQuery({
     includeMonitors: true,
   });
 
@@ -72,8 +72,10 @@ export default function StatusPagesPage() {
       </Card>
 
       {/* Status Pages Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredStatusPages.length > 0 ? (
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {isLoading ? (
+          <h1>Loading...</h1>
+        ) : filteredStatusPages.length > 0 ? (
           filteredStatusPages.map((page) => (
             <Card key={page.id} className="transition-shadow hover:shadow-md">
               <CardHeader>
@@ -105,7 +107,7 @@ export default function StatusPagesPage() {
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/status/${page.slug}`} target="_blank">
-                        <IconEye className="mr-2 h-4 w-4" />
+                        <IconWorld className="mr-2 h-4 w-4" />
                         View
                       </Link>
                     </Button>

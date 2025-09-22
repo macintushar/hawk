@@ -1,13 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  MonitorCard,
-  MonitorCardSkeleton,
-} from "@/components/shared/monitor-card";
+
 import { StatusBadge } from "@/components/shared/status-badge";
 import {
   IconPlus,
@@ -18,6 +15,8 @@ import {
 import Link from "next/link";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
+import { DataTable } from "@/components/data-table";
+import { monitorColumns } from "@/components/tables/monitor-columns";
 
 export default function MonitorsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -59,6 +58,7 @@ export default function MonitorsPage() {
     unknown: monitors.filter((m) => m.status === "unknown").length,
   };
 
+  const [isRetrying, setIsRetrying] = React.useState(false);
   if (error) {
     return (
       <div className="space-y-6">
@@ -72,7 +72,19 @@ export default function MonitorsPage() {
           <p className="text-destructive">
             Error loading monitors: {error.message}
           </p>
-          <Button onClick={() => refetch()} className="mt-4">
+          <Button
+            onClick={async () => {
+              setIsRetrying(true);
+              try {
+                await refetch();
+              } finally {
+                setIsRetrying(false);
+              }
+            }}
+            className="mt-4"
+            isLoading={isRetrying}
+            loadingText="Retrying..."
+          >
             <IconRefresh className="mr-2 h-4 w-4" />
             Retry
           </Button>
@@ -159,7 +171,7 @@ export default function MonitorsPage() {
                 className="pl-9"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant={statusFilter === "all" ? "default" : "outline"}
                 size="sm"
@@ -201,15 +213,11 @@ export default function MonitorsPage() {
       </Card>
 
       {/* Monitors Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="w-full">
         {isLoading ? (
-          Array.from({ length: 6 }).map((_, i) => (
-            <MonitorCardSkeleton key={i} />
-          ))
+          <h1>Loading...</h1>
         ) : filteredMonitors.length > 0 ? (
-          filteredMonitors.map((monitor) => (
-            <MonitorCard key={monitor.id} {...monitor} />
-          ))
+          <DataTable columns={monitorColumns} data={filteredMonitors} />
         ) : (
           <div className="col-span-full py-12 text-center">
             <p className="text-muted-foreground mb-4">

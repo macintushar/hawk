@@ -13,9 +13,11 @@ import type { NavItem } from "@/types";
 
 export function NavGroup({
   items,
+  path,
   ...props
 }: {
   items: NavItem[];
+  path: string;
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
   return (
     <SidebarGroup {...props}>
@@ -23,7 +25,11 @@ export function NavGroup({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title} asChild>
+              <SidebarMenuButton
+                tooltip={item.title}
+                isActive={path === item.url || path.startsWith(item.url + "/")}
+                asChild
+              >
                 <Link href={item.url}>
                   {item.icon && <item.icon />}
                   <span>{item.title}</span>

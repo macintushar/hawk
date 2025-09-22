@@ -4,10 +4,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  IncidentCard,
-  IncidentCardSkeleton,
-} from "@/components/shared/incident-card";
 import { IncidentStatusBadge } from "@/components/shared/incident-status-badge";
 import {
   IconPlus,
@@ -17,6 +13,8 @@ import {
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { api } from "@/trpc/react";
+import { DataTable } from "@/components/data-table";
+import { incidentsColumns } from "@/components/tables/incidents-columns";
 
 export default function IncidentsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -124,7 +122,7 @@ export default function IncidentsPage() {
                 className="pl-9"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant={statusFilter === "all" ? "default" : "outline"}
                 size="sm"
@@ -176,15 +174,11 @@ export default function IncidentsPage() {
       </Card>
 
       {/* Incidents Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="w-full">
         {isLoading ? (
-          Array.from({ length: 6 }).map((_, i) => (
-            <IncidentCardSkeleton key={i} />
-          ))
+          <h1>Loading...</h1>
         ) : filteredIncidents.length > 0 ? (
-          filteredIncidents.map((incident) => (
-            <IncidentCard key={incident.id} {...incident} />
-          ))
+          <DataTable columns={incidentsColumns} data={filteredIncidents} />
         ) : (
           <div className="col-span-full py-12 text-center">
             <p className="text-muted-foreground mb-4">

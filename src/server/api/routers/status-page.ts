@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 import {
@@ -8,12 +8,7 @@ import {
   publicProcedure,
 } from "@/server/api/trpc";
 import { db } from "@/server/db";
-import {
-  statusPage,
-  statusPageMonitor,
-  monitor,
-  incident,
-} from "@/server/db/schema";
+import { statusPage, statusPageMonitor } from "@/server/db/schema";
 import {
   createStatusPageSchema,
   updateStatusPageSchema,
@@ -31,36 +26,34 @@ export const statusPageRouter = createTRPCRouter({
       const { session } = ctx;
       const user = session.user;
 
-      const statusPages = await db
-        .select()
-        .from(statusPage)
-        .where(eq(statusPage.userId, user.id))
-        .orderBy(desc(statusPage.createdAt));
+      const statusPages = await db.query.statusPage.findMany({
+        where: (sp, { eq }) => eq(sp.userId, user.id),
+        orderBy: (sp, { desc }) => [desc(sp.createdAt)],
+      });
 
       if (input.includeMonitors) {
         // Get monitors for each status page
         const statusPagesWithMonitors = await Promise.all(
           statusPages.map(async (page) => {
-            const monitors = await db
-              .select({
-                id: monitor.id,
-                name: monitor.name,
-                slug: monitor.slug,
-                url: monitor.url,
-                status: monitor.status,
-                lastChecked: monitor.lastChecked,
-                threshold: monitor.threshold,
-                cronExpression: monitor.cronExpression,
-                createdAt: monitor.createdAt,
-                updatedAt: monitor.updatedAt,
-              })
-              .from(monitor)
-              .innerJoin(
-                statusPageMonitor,
-                eq(monitor.id, statusPageMonitor.monitorId),
-              )
-              .where(eq(statusPageMonitor.statusPageId, page.id))
-              .orderBy(desc(monitor.createdAt));
+            const spm = await db.query.statusPageMonitor.findMany({
+              where: (spm, { eq }) => eq(spm.statusPageId, page.id),
+              with: { monitor: true },
+            });
+            const monitors = spm
+              .map((r) => r.monitor)
+              .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+              .map((m) => ({
+                id: m.id,
+                name: m.name,
+                slug: m.slug,
+                url: m.url,
+                status: m.status,
+                lastChecked: m.lastChecked ?? null,
+                threshold: m.threshold,
+                cronExpression: m.cronExpression,
+                createdAt: m.createdAt,
+                updatedAt: m.updatedAt,
+              }));
 
             return {
               ...page,
@@ -80,60 +73,57 @@ export const statusPageRouter = createTRPCRouter({
   get: publicProcedure
     .input(z.object({ slug: z.string() }))
     .query(async ({ input }) => {
-      const statusPageData = await db
-        .select()
-        .from(statusPage)
-        .where(and(eq(statusPage.slug, input.slug)))
-        .limit(1);
+      const statusPageData = await db.query.statusPage.findFirst({
+        where: (sp, { eq }) => eq(sp.slug, input.slug),
+      });
 
-      if (!statusPageData[0]) {
+      if (!statusPageData) {
         throw new Error("Status page not found");
       }
 
       // Get monitors for this status page
-      const monitors = await db
-        .select({
-          id: monitor.id,
-          name: monitor.name,
-          slug: monitor.slug,
-          url: monitor.url,
-          status: monitor.status,
-          lastChecked: monitor.lastChecked,
-          threshold: monitor.threshold,
-          cronExpression: monitor.cronExpression,
-          createdAt: monitor.createdAt,
-          updatedAt: monitor.updatedAt,
-        })
-        .from(monitor)
-        .innerJoin(
-          statusPageMonitor,
-          eq(monitor.id, statusPageMonitor.monitorId),
-        )
-        .where(eq(statusPageMonitor.statusPageId, statusPageData[0].id))
-        .orderBy(desc(monitor.createdAt));
+      const spm = await db.query.statusPageMonitor.findMany({
+        where: (spm, { eq }) => eq(spm.statusPageId, statusPageData.id),
+        with: { monitor: true },
+      });
+      const monitors = spm
+        .map((r) => r.monitor)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        .map((m) => ({
+          id: m.id,
+          name: m.name,
+          slug: m.slug,
+          url: m.url,
+          status: m.status,
+          lastChecked: m.lastChecked ?? null,
+          threshold: m.threshold,
+          cronExpression: m.cronExpression,
+          createdAt: m.createdAt,
+          updatedAt: m.updatedAt,
+        }));
 
       // Get incidents for this status page and its monitors
-      const incidents = await db
-        .select({
-          id: incident.id,
-          title: incident.title,
-          description: incident.description,
-          status: incident.status,
-          statusPageId: incident.statusPageId,
-          monitorId: incident.monitorId,
-          startedAt: incident.startedAt,
-          resolvedAt: incident.resolvedAt,
-          createdAt: incident.createdAt,
-          updatedAt: incident.updatedAt,
-          monitorName: monitor.name,
-        })
-        .from(incident)
-        .leftJoin(monitor, eq(incident.monitorId, monitor.id))
-        .where(eq(incident.statusPageId, statusPageData[0].id))
-        .orderBy(desc(incident.startedAt));
+      const incidentsRaw = await db.query.incident.findMany({
+        where: (i, { eq }) => eq(i.statusPageId, statusPageData.id),
+        with: { monitor: true },
+        orderBy: (i, { desc }) => [desc(i.startedAt)],
+      });
+      const incidents = incidentsRaw.map((i) => ({
+        id: i.id,
+        title: i.title,
+        description: i.description,
+        status: i.status,
+        statusPageId: i.statusPageId,
+        monitorId: i.monitorId,
+        startedAt: i.startedAt,
+        resolvedAt: i.resolvedAt ?? null,
+        createdAt: i.createdAt,
+        updatedAt: i.updatedAt,
+        monitorName: i.monitor?.name ?? null,
+      }));
 
       return {
-        ...statusPageData[0],
+        ...statusPageData,
         monitors,
         incidents,
       };
@@ -153,13 +143,11 @@ export const statusPageRouter = createTRPCRouter({
         .replace(/(^-|-$)/g, "");
 
       // Check if slug already exists
-      const existingStatusPage = await db
-        .select()
-        .from(statusPage)
-        .where(eq(statusPage.slug, slug))
-        .limit(1);
+      const existingStatusPage = await db.query.statusPage.findFirst({
+        where: (sp, { eq }) => eq(sp.slug, slug),
+      });
 
-      if (existingStatusPage[0]) {
+      if (existingStatusPage) {
         throw new Error("A status page with this name already exists");
       }
 
@@ -186,32 +174,28 @@ export const statusPageRouter = createTRPCRouter({
       const { id, ...updateData } = input;
 
       // Check if status page exists and belongs to user
-      const existingStatusPage = await db
-        .select()
-        .from(statusPage)
-        .where(and(eq(statusPage.id, id), eq(statusPage.userId, user.id)))
-        .limit(1);
+      const existingStatusPage = await db.query.statusPage.findFirst({
+        where: (sp, { and, eq }) => and(eq(sp.id, id), eq(sp.userId, user.id)),
+      });
 
-      if (!existingStatusPage[0]) {
+      if (!existingStatusPage) {
         throw new Error("Status page not found");
       }
 
       // Generate new slug if name is being updated
-      let slug = existingStatusPage[0].slug;
-      if (updateData.name && updateData.name !== existingStatusPage[0].name) {
+      let slug = existingStatusPage.slug;
+      if (updateData.name && updateData.name !== existingStatusPage.name) {
         slug = updateData.name
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/(^-|-$)/g, "");
 
         // Check if new slug already exists
-        const slugExists = await db
-          .select()
-          .from(statusPage)
-          .where(and(eq(statusPage.slug, slug), eq(statusPage.id, id)))
-          .limit(1);
+        const slugExists = await db.query.statusPage.findFirst({
+          where: (sp, { and, eq, ne }) => and(eq(sp.slug, slug), ne(sp.id, id)),
+        });
 
-        if (slugExists[0]) {
+        if (slugExists) {
           throw new Error("A status page with this name already exists");
         }
       }
@@ -264,47 +248,35 @@ export const statusPageRouter = createTRPCRouter({
       const user = session.user;
 
       // Verify status page belongs to user
-      const statusPageData = await db
-        .select()
-        .from(statusPage)
-        .where(
-          and(
-            eq(statusPage.id, input.statusPageId),
-            eq(statusPage.userId, user.id),
-          ),
-        )
-        .limit(1);
+      const statusPageData = await db.query.statusPage.findFirst({
+        where: (sp, { and, eq }) =>
+          and(eq(sp.id, input.statusPageId), eq(sp.userId, user.id)),
+      });
 
-      if (!statusPageData[0]) {
+      if (!statusPageData) {
         throw new Error("Status page not found");
       }
 
       // Verify monitor belongs to user
-      const monitorData = await db
-        .select()
-        .from(monitor)
-        .where(
-          and(eq(monitor.id, input.monitorId), eq(monitor.userId, user.id)),
-        )
-        .limit(1);
+      const monitorData = await db.query.monitor.findFirst({
+        where: (m, { and, eq }) =>
+          and(eq(m.id, input.monitorId), eq(m.userId, user.id)),
+      });
 
-      if (!monitorData[0]) {
+      if (!monitorData) {
         throw new Error("Monitor not found");
       }
 
       // Check if monitor is already added to this status page
-      const existingRelation = await db
-        .select()
-        .from(statusPageMonitor)
-        .where(
+      const existingRelation = await db.query.statusPageMonitor.findFirst({
+        where: (spm, { and, eq }) =>
           and(
-            eq(statusPageMonitor.statusPageId, input.statusPageId),
-            eq(statusPageMonitor.monitorId, input.monitorId),
+            eq(spm.statusPageId, input.statusPageId),
+            eq(spm.monitorId, input.monitorId),
           ),
-        )
-        .limit(1);
+      });
 
-      if (existingRelation[0]) {
+      if (existingRelation) {
         throw new Error("Monitor is already added to this status page");
       }
 
@@ -329,18 +301,12 @@ export const statusPageRouter = createTRPCRouter({
       const user = session.user;
 
       // Verify status page belongs to user
-      const statusPageData = await db
-        .select()
-        .from(statusPage)
-        .where(
-          and(
-            eq(statusPage.id, input.statusPageId),
-            eq(statusPage.userId, user.id),
-          ),
-        )
-        .limit(1);
+      const statusPageData = await db.query.statusPage.findFirst({
+        where: (sp, { and, eq }) =>
+          and(eq(sp.id, input.statusPageId), eq(sp.userId, user.id)),
+      });
 
-      if (!statusPageData[0]) {
+      if (!statusPageData) {
         throw new Error("Status page not found");
       }
 
@@ -381,17 +347,16 @@ export const statusPageRouter = createTRPCRouter({
       }
 
       // Get all user's monitors
-      const allMonitors = await db
-        .select()
-        .from(monitor)
-        .where(eq(monitor.userId, user.id))
-        .orderBy(desc(monitor.createdAt));
+      const allMonitors = await db.query.monitor.findMany({
+        where: (m, { eq }) => eq(m.userId, user.id),
+        orderBy: (m, { desc }) => [desc(m.createdAt)],
+      });
 
       // Get monitors already added to this status page
-      const addedMonitors = await db
-        .select({ monitorId: statusPageMonitor.monitorId })
-        .from(statusPageMonitor)
-        .where(eq(statusPageMonitor.statusPageId, input.statusPageId));
+      const addedMonitors = await db.query.statusPageMonitor.findMany({
+        where: (spm, { eq }) => eq(spm.statusPageId, input.statusPageId),
+        columns: { monitorId: true },
+      });
 
       const addedMonitorIds = new Set(addedMonitors.map((m) => m.monitorId));
 

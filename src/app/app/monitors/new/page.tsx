@@ -1,10 +1,10 @@
 "use client";
-
-import { useState } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -13,6 +13,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { IconArrowLeft, IconPlus } from "@tabler/icons-react";
 import Link from "next/link";
 import { api } from "@/trpc/react";
@@ -20,11 +28,21 @@ import { toast } from "sonner";
 
 export default function NewMonitorPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    name: "",
-    url: "",
-    threshold: 3,
-    cronExpression: "*/10 * * * *",
+  const createMonitorSchema = z.object({
+    name: z.string().min(1, "Name is required"),
+    url: z.string().url("Invalid URL"),
+    threshold: z.number().int().min(1).max(10),
+    cronExpression: z.string(),
+  });
+
+  const form = useForm<z.infer<typeof createMonitorSchema>>({
+    resolver: zodResolver(createMonitorSchema),
+    defaultValues: {
+      name: "",
+      url: "",
+      threshold: 3,
+      cronExpression: "*/10 * * * *",
+    },
   });
 
   const cronOptions = [
@@ -48,21 +66,12 @@ export default function NewMonitorPage() {
     },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const onSubmit = async (values: z.infer<typeof createMonitorSchema>) => {
     try {
-      createMonitorMutation.mutate(formData);
+      createMonitorMutation.mutate(values);
     } catch (error) {
       console.error("Error creating monitor:", error);
     }
-  };
-
-  const handleInputChange = (field: string, value: string | number) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
   };
 
   return (
@@ -88,103 +97,140 @@ export default function NewMonitorPage() {
             <CardTitle>Monitor Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  placeholder="My Website"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  required
-                />
-                <p className="text-muted-foreground text-sm">
-                  A friendly name for your monitor
-                </p>
-              </div>
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name</FormLabel>
+                        <FormControl>
+                          <Input
+                            id="name"
+                            placeholder="My Website"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <p className="text-muted-foreground text-sm">
+                    A friendly name for your monitor
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="url">URL</Label>
-                <Input
-                  id="url"
-                  type="url"
-                  placeholder="https://example.com"
-                  value={formData.url}
-                  onChange={(e) => handleInputChange("url", e.target.value)}
-                  required
-                />
-                <p className="text-muted-foreground text-sm">
-                  The URL to monitor (must include http:// or https://)
-                </p>
-              </div>
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>URL</FormLabel>
+                        <FormControl>
+                          <Input
+                            id="url"
+                            type="url"
+                            placeholder="https://example.com"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <p className="text-muted-foreground text-sm">
+                    The URL to monitor (must include http:// or https://)
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="threshold">Failure Threshold</Label>
-                <Select
-                  value={formData.threshold.toString()}
-                  onValueChange={(value) =>
-                    handleInputChange("threshold", parseInt(value))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                      <SelectItem key={num} value={num.toString()}>
-                        {num} consecutive failure{num > 1 ? "s" : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-muted-foreground text-sm">
-                  Number of consecutive failures before marking as down
-                </p>
-              </div>
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="threshold"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Failure Threshold</FormLabel>
+                        <Select
+                          value={field.value?.toString()}
+                          onValueChange={(value) =>
+                            field.onChange(parseInt(value))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                              <SelectItem key={num} value={num.toString()}>
+                                {num} consecutive failure{num > 1 ? "s" : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <p className="text-muted-foreground text-sm">
+                    Number of consecutive failures before marking as down
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="cron">Check Frequency</Label>
-                <Select
-                  value={formData.cronExpression}
-                  onValueChange={(value) =>
-                    handleInputChange("cronExpression", value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cronOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-muted-foreground text-sm">
-                  How often to check the monitor
-                </p>
-              </div>
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="cronExpression"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Check Frequency</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {cronOptions.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                value={option.value}
+                              >
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <p className="text-muted-foreground text-sm">
+                    How often to check the monitor
+                  </p>
+                </div>
 
-              <div className="flex gap-4 pt-4">
-                <Button
-                  type="submit"
-                  disabled={createMonitorMutation.isPending}
-                >
-                  {createMonitorMutation.isPending ? (
-                    "Creating..."
-                  ) : (
-                    <>
-                      <IconPlus className="mr-2 h-4 w-4" />
-                      Create Monitor
-                    </>
-                  )}
-                </Button>
-                <Button type="button" variant="outline" asChild>
-                  <Link href="/app/monitors">Cancel</Link>
-                </Button>
-              </div>
-            </form>
+                <div className="flex gap-4 pt-4">
+                  <Button
+                    type="submit"
+                    isLoading={createMonitorMutation.isPending}
+                    loadingText="Creating..."
+                  >
+                    <IconPlus className="mr-2 h-4 w-4" />
+                    Create Monitor
+                  </Button>
+                  <Button type="button" variant="outline" asChild>
+                    <Link href="/app/monitors">Cancel</Link>
+                  </Button>
+                </div>
+              </form>
+            </Form>
           </CardContent>
         </Card>
       </div>
