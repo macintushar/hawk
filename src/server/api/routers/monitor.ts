@@ -134,7 +134,7 @@ export const monitorRouter = createTRPCRouter({
 
         // Check if new slug already exists
         const slugExists = await db.query.monitor.findFirst({
-          where: (m, { and, eq }) => and(eq(m.slug, slug), eq(m.id, id)),
+          where: (m, { and, eq, ne }) => and(eq(m.slug, slug), ne(m.id, id)),
         });
 
         if (slugExists) {

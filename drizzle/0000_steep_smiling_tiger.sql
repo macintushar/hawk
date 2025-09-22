@@ -30,6 +30,7 @@ CREATE TABLE `incident` (
 	FOREIGN KEY (`monitor_id`) REFERENCES `monitor`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE INDEX `idx_incident_statuspage_started_at` ON `incident` (`status_page_id`,`started_at`);--> statement-breakpoint
 CREATE TABLE `monitor` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
@@ -46,6 +47,7 @@ CREATE TABLE `monitor` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `monitor_slug_unique` ON `monitor` (`slug`);--> statement-breakpoint
+CREATE INDEX `idx_monitor_user_created_at` ON `monitor` (`user_id`,`created_at`);--> statement-breakpoint
 CREATE TABLE `monitor_check` (
 	`id` text PRIMARY KEY NOT NULL,
 	`monitor_id` text NOT NULL,
@@ -57,6 +59,23 @@ CREATE TABLE `monitor_check` (
 	FOREIGN KEY (`monitor_id`) REFERENCES `monitor`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE INDEX `idx_monitor_check_monitor_checked_at` ON `monitor_check` (`monitor_id`,`checked_at`);--> statement-breakpoint
+CREATE TABLE `notification_settings` (
+	`id` text PRIMARY KEY NOT NULL,
+	`user_id` text NOT NULL,
+	`slack_enabled` integer DEFAULT false NOT NULL,
+	`slack_webhook_url` text,
+	`slack_channel` text,
+	`on_monitor_down` integer DEFAULT true NOT NULL,
+	`on_monitor_up` integer DEFAULT false NOT NULL,
+	`on_incident_created` integer DEFAULT true NOT NULL,
+	`on_incident_resolved` integer DEFAULT true NOT NULL,
+	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `idx_notification_settings_user_unique` ON `notification_settings` (`user_id`);--> statement-breakpoint
 CREATE TABLE `session` (
 	`id` text PRIMARY KEY NOT NULL,
 	`expires_at` integer NOT NULL,
@@ -91,6 +110,7 @@ CREATE TABLE `status_page_monitor` (
 	FOREIGN KEY (`monitor_id`) REFERENCES `monitor`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `idx_spm_unique` ON `status_page_monitor` (`status_page_id`,`monitor_id`);--> statement-breakpoint
 CREATE TABLE `user` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,

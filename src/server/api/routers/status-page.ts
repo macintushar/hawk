@@ -192,7 +192,7 @@ export const statusPageRouter = createTRPCRouter({
 
         // Check if new slug already exists
         const slugExists = await db.query.statusPage.findFirst({
-          where: (sp, { and, eq }) => and(eq(sp.slug, slug), eq(sp.id, id)),
+          where: (sp, { and, eq, ne }) => and(eq(sp.slug, slug), ne(sp.id, id)),
         });
 
         if (slugExists) {

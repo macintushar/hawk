@@ -4,9 +4,9 @@ import { SignInForm } from "@/components/forms/sign-in";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Sign Up | Hawk",
+  title: "Sign In | Hawk",
   description:
-    "Sign up with your email and password to use Hawk to monitor your services",
+    "Sign in with your email and password to access your Hawk dashboard",
 };
 
 export default function SignIn() {

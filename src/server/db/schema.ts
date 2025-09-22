@@ -2,7 +2,13 @@
 // https://orm.drizzle.team/docs/sql-schema-declaration
 
 import { sql, relations } from "drizzle-orm";
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  index,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 import { utcNow } from "@/lib/date-utils";
 
 export const user = sqliteTable("user", {
@@ -79,27 +85,38 @@ export const verification = sqliteTable("verification", {
     .notNull(),
 });
 
-export const monitor = sqliteTable("monitor", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
-  url: text("url").notNull(),
-  status: text("status", { enum: ["up", "down", "unknown"] })
-    .default("unknown")
-    .notNull(),
-  lastChecked: integer("last_checked", { mode: "timestamp" }),
-  threshold: integer("threshold").default(3).notNull(), // Number of consecutive failures before marking as down
-  cronExpression: text("cron_expression").default("*/10 * * * *").notNull(), // Default: every 5 minutes
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .default(sql`(unixepoch())`)
-    .notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .$onUpdate(() => /* @__PURE__ */ utcNow())
-    .notNull(),
-});
+export const monitor = sqliteTable(
+  "monitor",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    url: text("url").notNull(),
+    status: text("status", { enum: ["up", "down", "unknown"] })
+      .default("unknown")
+      .notNull(),
+    lastChecked: integer("last_checked", { mode: "timestamp" }),
+    threshold: integer("threshold").default(3).notNull(), // Number of consecutive failures before marking as down
+    cronExpression: text("cron_expression").default("*/10 * * * *").notNull(), // Default: every 5 minutes
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .default(sql`(unixepoch())`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .$onUpdate(() => /* @__PURE__ */ utcNow())
+      .notNull(),
+  },
+  (table) => {
+    return {
+      monitorUserCreatedAtIdx: index("idx_monitor_user_created_at").on(
+        table.userId,
+        table.createdAt,
+      ),
+    };
+  },
+);
 
 export const statusPage = sqliteTable("status_page", {
   id: text("id").primaryKey(),
@@ -117,90 +134,132 @@ export const statusPage = sqliteTable("status_page", {
     .notNull(),
 });
 
-export const statusPageMonitor = sqliteTable("status_page_monitor", {
-  id: text("id").primaryKey(),
-  statusPageId: text("status_page_id")
-    .notNull()
-    .references(() => statusPage.id, { onDelete: "cascade" }),
-  monitorId: text("monitor_id")
-    .notNull()
-    .references(() => monitor.id, { onDelete: "cascade" }),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .default(sql`(unixepoch())`)
-    .notNull(),
-});
+export const statusPageMonitor = sqliteTable(
+  "status_page_monitor",
+  {
+    id: text("id").primaryKey(),
+    statusPageId: text("status_page_id")
+      .notNull()
+      .references(() => statusPage.id, { onDelete: "cascade" }),
+    monitorId: text("monitor_id")
+      .notNull()
+      .references(() => monitor.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .default(sql`(unixepoch())`)
+      .notNull(),
+  },
+  (table) => {
+    return {
+      spmUnique: uniqueIndex("idx_spm_unique").on(
+        table.statusPageId,
+        table.monitorId,
+      ),
+    };
+  },
+);
 
-export const incident = sqliteTable("incident", {
-  id: text("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description"),
-  status: text("status", {
-    enum: ["investigating", "identified", "monitoring", "resolved"],
-  })
-    .default("investigating")
-    .notNull(),
-  statusPageId: text("status_page_id")
-    .notNull()
-    .references(() => statusPage.id, { onDelete: "cascade" }),
-  monitorId: text("monitor_id").references(() => monitor.id, {
-    onDelete: "cascade",
-  }),
-  startedAt: integer("started_at", { mode: "timestamp" })
-    .default(sql`(unixepoch())`)
-    .notNull(),
-  resolvedAt: integer("resolved_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .default(sql`(unixepoch())`)
-    .notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .$onUpdate(() => /* @__PURE__ */ utcNow())
-    .notNull(),
-});
+export const incident = sqliteTable(
+  "incident",
+  {
+    id: text("id").primaryKey(),
+    title: text("title").notNull(),
+    description: text("description"),
+    status: text("status", {
+      enum: ["investigating", "identified", "monitoring", "resolved"],
+    })
+      .default("investigating")
+      .notNull(),
+    statusPageId: text("status_page_id")
+      .notNull()
+      .references(() => statusPage.id, { onDelete: "cascade" }),
+    monitorId: text("monitor_id").references(() => monitor.id, {
+      onDelete: "cascade",
+    }),
+    startedAt: integer("started_at", { mode: "timestamp" })
+      .default(sql`(unixepoch())`)
+      .notNull(),
+    resolvedAt: integer("resolved_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .default(sql`(unixepoch())`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .$onUpdate(() => /* @__PURE__ */ utcNow())
+      .notNull(),
+  },
+  (table) => {
+    return {
+      incidentStatusPageStartedAtIdx: index(
+        "idx_incident_statuspage_started_at",
+      ).on(table.statusPageId, table.startedAt),
+    };
+  },
+);
 
-export const monitorCheck = sqliteTable("monitor_check", {
-  id: text("id").primaryKey(),
-  monitorId: text("monitor_id")
-    .notNull()
-    .references(() => monitor.id, { onDelete: "cascade" }),
-  status: text("status", { enum: ["up", "down"] }).notNull(),
-  responseTime: integer("response_time"), // in milliseconds
-  statusCode: integer("status_code"),
-  error: text("error"),
-  checkedAt: integer("checked_at", { mode: "timestamp" })
-    .default(sql`(unixepoch())`)
-    .notNull(),
-});
+export const monitorCheck = sqliteTable(
+  "monitor_check",
+  {
+    id: text("id").primaryKey(),
+    monitorId: text("monitor_id")
+      .notNull()
+      .references(() => monitor.id, { onDelete: "cascade" }),
+    status: text("status", { enum: ["up", "down"] }).notNull(),
+    responseTime: integer("response_time"), // in milliseconds
+    statusCode: integer("status_code"),
+    error: text("error"),
+    checkedAt: integer("checked_at", { mode: "timestamp" })
+      .default(sql`(unixepoch())`)
+      .notNull(),
+  },
+  (table) => {
+    return {
+      monitorCheckedAtIdx: index("idx_monitor_check_monitor_checked_at").on(
+        table.monitorId,
+        table.checkedAt,
+      ),
+    };
+  },
+);
 
-export const notificationSettings = sqliteTable("notification_settings", {
-  id: text("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  slackEnabled: integer("slack_enabled", { mode: "boolean" })
-    .default(false)
-    .notNull(),
-  slackWebhookUrl: text("slack_webhook_url"),
-  slackChannel: text("slack_channel"),
-  onMonitorDown: integer("on_monitor_down", { mode: "boolean" })
-    .default(true)
-    .notNull(),
-  onMonitorUp: integer("on_monitor_up", { mode: "boolean" })
-    .default(false)
-    .notNull(),
-  onIncidentCreated: integer("on_incident_created", { mode: "boolean" })
-    .default(true)
-    .notNull(),
-  onIncidentResolved: integer("on_incident_resolved", { mode: "boolean" })
-    .default(true)
-    .notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .default(sql`(unixepoch())`)
-    .notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .default(sql`(unixepoch())`)
-    .$onUpdate(() => /* @__PURE__ */ utcNow())
-    .notNull(),
-});
+export const notificationSettings = sqliteTable(
+  "notification_settings",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    slackEnabled: integer("slack_enabled", { mode: "boolean" })
+      .default(false)
+      .notNull(),
+    slackWebhookUrl: text("slack_webhook_url"),
+    slackChannel: text("slack_channel"),
+    onMonitorDown: integer("on_monitor_down", { mode: "boolean" })
+      .default(true)
+      .notNull(),
+    onMonitorUp: integer("on_monitor_up", { mode: "boolean" })
+      .default(false)
+      .notNull(),
+    onIncidentCreated: integer("on_incident_created", { mode: "boolean" })
+      .default(true)
+      .notNull(),
+    onIncidentResolved: integer("on_incident_resolved", { mode: "boolean" })
+      .default(true)
+      .notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .default(sql`(unixepoch())`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .default(sql`(unixepoch())`)
+      .$onUpdate(() => /* @__PURE__ */ utcNow())
+      .notNull(),
+  },
+  (table) => {
+    return {
+      notificationSettingsUserUnique: uniqueIndex(
+        "idx_notification_settings_user_unique",
+      ).on(table.userId),
+    };
+  },
+);
 
 // Relations
 export const userRelations = relations(user, ({ many }) => ({

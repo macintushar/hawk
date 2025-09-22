@@ -27,16 +27,14 @@ export const incidentsColumns: ColumnDef<Incident>[] = [
   },
   {
     header: "Started At",
-    accessorKey: "startedAt",
-    cell: ({ cell }) => {
-      return <FormatTimestamp timestamp={cell.getValue() as Date} />;
+    cell: ({ row }) => {
+      return <FormatTimestamp timestamp={row.original.startedAt} />;
     },
   },
   {
     header: "Resolved At",
-    accessorKey: "resolvedAt",
-    cell: ({ cell }) => {
-      return <FormatTimestamp timestamp={cell.getValue() as Date} />;
+    cell: ({ row }) => {
+      return <FormatTimestamp timestamp={row.original.resolvedAt} />;
     },
   },
   {

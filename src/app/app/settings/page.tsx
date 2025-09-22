@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IconUser, IconKey, IconCheck } from "@tabler/icons-react";
 import { updateUser, changePassword, useSession } from "@/lib/auth-client";
 import { HiddenInput } from "@/components/ui/hidden-input";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
   const session = useSession();
@@ -26,8 +27,10 @@ export default function SettingsPage() {
   const handleSaveProfile = async () => {
     try {
       await updateUser({ name: profile.name });
+      toast.success("Profile updated successfully");
     } catch (err) {
       console.error(err);
+      toast.error("Failed to update profile");
     }
   };
 

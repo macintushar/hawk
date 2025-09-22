@@ -133,12 +133,16 @@ export const incidentRouter = createTRPCRouter({
       });
       if (cfg?.slackEnabled && cfg.onIncidentCreated && newIncident[0]) {
         const text = `:memo: Incident created: ${newIncident[0].title}`;
-        await sendSlackMessage(cfg.slackWebhookUrl ?? undefined, {
-          text,
-          channel: cfg.slackChannel ?? undefined,
-        });
+        try {
+          await sendSlackMessage(cfg.slackWebhookUrl ?? undefined, {
+            text,
+            channel: cfg.slackChannel ?? undefined,
+          });
+        } catch (error) {
+          console.error("Failed to send Slack notification:", error);
+          // Consider adding telemetry/monitoring here
+        }
       }
-
       return newIncident[0];
     }),
 

@@ -7,6 +7,7 @@ import { TRPCReactProvider } from "@/trpc/react";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 
 import { Toaster } from "@/components/ui/sonner";
+import { env } from "@/env";
 
 export const metadata: Metadata = {
   title: "Hawk",
@@ -16,6 +17,7 @@ export const metadata: Metadata = {
   openGraph: {
     images: "/hawk-og.png",
   },
+  metadataBase: new URL(env.BASE_URL),
 };
 
 const dmSans = DM_Sans({

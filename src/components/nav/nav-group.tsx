@@ -27,7 +27,7 @@ export function NavGroup({
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
                 tooltip={item.title}
-                isActive={path.includes(item.url)}
+                isActive={path === item.url || path.startsWith(item.url + "/")}
                 asChild
               >
                 <Link href={item.url}>

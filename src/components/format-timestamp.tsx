@@ -10,9 +10,20 @@ dayjs.extend(advancedFormat);
 dayjs.extend(relativeTime);
 dayjs.extend(utc);
 
-export default function FormatTimestamp({ timestamp }: { timestamp: Date }) {
-  const formattedTimestamp = dayjs(timestamp).format("MMM D, YYYY hh:mm A");
-  return (
-    <div className="text-muted-foreground text-sm">{formattedTimestamp}</div>
+function FormattedText({ text }: { text: string }) {
+  return <div className="text-muted-foreground text-sm">{text}</div>;
+}
+
+export default function FormatTimestamp({
+  timestamp,
+  format,
+}: {
+  timestamp: Date | null;
+  format?: string;
+}) {
+  if (!timestamp) return <FormattedText text="--" />;
+  const formattedTimestamp = dayjs(timestamp).format(
+    format ?? "MMM D, YYYY hh:mm A",
   );
+  return <FormattedText text={formattedTimestamp} />;
 }

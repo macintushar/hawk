@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "f7db3390-31e3-4fe9-b8b0-dd6edc0c4a54",
+  "id": "953a4eda-29d7-4d4d-8fa4-cbd728733cb7",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account": {
@@ -197,7 +197,16 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_incident_statuspage_started_at": {
+          "name": "idx_incident_statuspage_started_at",
+          "columns": [
+            "status_page_id",
+            "started_at"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "incident_status_page_id_status_page_id_fk": {
           "name": "incident_status_page_id_status_page_id_fk",
@@ -322,6 +331,14 @@
             "slug"
           ],
           "isUnique": true
+        },
+        "idx_monitor_user_created_at": {
+          "name": "idx_monitor_user_created_at",
+          "columns": [
+            "user_id",
+            "created_at"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -397,7 +414,16 @@
           "default": "(unixepoch())"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_monitor_check_monitor_checked_at": {
+          "name": "idx_monitor_check_monitor_checked_at",
+          "columns": [
+            "monitor_id",
+            "checked_at"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "monitor_check_monitor_id_monitor_id_fk": {
           "name": "monitor_check_monitor_id_monitor_id_fk",
@@ -405,6 +431,122 @@
           "tableTo": "monitor",
           "columnsFrom": [
             "monitor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "notification_settings": {
+      "name": "notification_settings",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "slack_enabled": {
+          "name": "slack_enabled",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "slack_webhook_url": {
+          "name": "slack_webhook_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "slack_channel": {
+          "name": "slack_channel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "on_monitor_down": {
+          "name": "on_monitor_down",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "on_monitor_up": {
+          "name": "on_monitor_up",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "on_incident_created": {
+          "name": "on_incident_created",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "on_incident_resolved": {
+          "name": "on_incident_resolved",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch())"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch())"
+        }
+      },
+      "indexes": {
+        "idx_notification_settings_user_unique": {
+          "name": "idx_notification_settings_user_unique",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "notification_settings_user_id_user_id_fk": {
+          "name": "notification_settings_user_id_user_id_fk",
+          "tableFrom": "notification_settings",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
           ],
           "columnsTo": [
             "id"
@@ -621,7 +763,16 @@
           "default": "(unixepoch())"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_spm_unique": {
+          "name": "idx_spm_unique",
+          "columns": [
+            "status_page_id",
+            "monitor_id"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "status_page_monitor_status_page_id_status_page_id_fk": {
           "name": "status_page_monitor_status_page_id_status_page_id_fk",
