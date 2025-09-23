@@ -27,9 +27,9 @@ export class MonitoringService {
   ): number {
     const fallbackMinutes = 10;
     if (!cronExpression) return fallbackMinutes * 60 * 1000;
-
     // Match patterns like "*/5 * * * *" -> every 5 minutes
-    const match = cronExpression.match(/^\*\/(\d+) \* \* \* \*$/);
+    const pattern = /^\*\/(\d+) \* \* \* \*$/;
+    const match = pattern.exec(cronExpression);
     if (match) {
       const minutes = Number(match[1]);
       if (Number.isFinite(minutes) && minutes > 0) {
@@ -93,6 +93,7 @@ export class MonitoringService {
         result = {
           status: "up",
           responseTime,
+
           statusCode: response.status,
         };
       } else {
