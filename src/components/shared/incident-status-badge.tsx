@@ -4,10 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { IncidentStatus } from "@/types";
 
-interface IncidentStatusBadgeProps {
+type IncidentStatusBadgeProps = {
   status: IncidentStatus;
   className?: string;
-}
+};
 
 export function IncidentStatusBadge({
   status,

@@ -14,11 +14,11 @@ import type { Incident, Monitor } from "@/types";
 import { monitorColumns } from "@/components/tables/monitor-columns";
 import { incidentsColumns } from "../tables/incidents-columns";
 
-interface RecentActivityProps {
+type RecentActivityProps = {
   monitors?: Monitor[];
   incidents?: Incident[];
   isLoading?: boolean;
-}
+};
 
 export function RecentActivity({
   monitors,

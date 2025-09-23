@@ -12,12 +12,12 @@ import {
 import { notificationSettings } from "@/server/db/schema";
 import type { UptimeStatus } from "@/types";
 
-export interface CheckResult {
+export type CheckResult = {
   status: "up" | "down";
   responseTime?: number;
   statusCode?: number;
   error?: string;
-}
+};
 
 export class MonitoringService {
   // Very small cron helper: supports "every N minutes" step syntax (e.g., every 5 minutes).

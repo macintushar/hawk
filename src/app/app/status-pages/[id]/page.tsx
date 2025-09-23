@@ -4,11 +4,11 @@ import Link from "next/link";
 import { api } from "@/trpc/server";
 import { EditStatusPageForm } from "./edit-status-page-form";
 
-interface EditStatusPagePageProps {
+type EditStatusPagePageProps = {
   params: Promise<{
     id: string;
   }>;
-}
+};
 
 export default async function EditStatusPagePage({
   params,

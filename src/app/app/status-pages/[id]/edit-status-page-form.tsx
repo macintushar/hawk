@@ -24,7 +24,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-interface EditStatusPageFormProps {
+type EditStatusPageFormProps = {
   statusPage: {
     id: string;
     name: string;
@@ -58,7 +58,7 @@ interface EditStatusPageFormProps {
     createdAt: Date;
     updatedAt: Date;
   }>;
-}
+};
 
 export function EditStatusPageForm({
   statusPage,

@@ -1,7 +1,7 @@
-export interface SlackMessage {
+export type SlackMessage = {
   text: string;
   channel?: string;
-}
+};
 
 export async function sendSlackMessage(
   webhookUrl: string | undefined,
