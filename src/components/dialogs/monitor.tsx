@@ -1,11 +1,10 @@
 "use client";
-import { z } from "zod";
+import type { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -21,28 +20,42 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { IconArrowLeft, IconPlus } from "@tabler/icons-react";
-import Link from "next/link";
+import { IconEdit, IconPlus } from "@tabler/icons-react";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { createMonitorSchema } from "@/schemas";
 
-export default function NewMonitorPage() {
+type MonitorDialogProps = {
+  mode: "create" | "update";
+  defaultValues?: z.input<typeof createMonitorSchema>;
+  monitorId?: string;
+};
+
+export default function MonitorDialog({
+  mode = "create",
+  defaultValues = {
+    name: "",
+    url: "",
+    threshold: 3,
+    cronExpression: "*/10 * * * *",
+  },
+  monitorId,
+}: MonitorDialogProps) {
   const router = useRouter();
-  const createMonitorSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-    url: z.string().url("Invalid URL"),
-    threshold: z.number().int().min(1).max(10),
-    cronExpression: z.string(),
-  });
 
-  const form = useForm<z.infer<typeof createMonitorSchema>>({
+  const form = useForm<z.input<typeof createMonitorSchema>>({
     resolver: zodResolver(createMonitorSchema),
-    defaultValues: {
-      name: "",
-      url: "",
-      threshold: 3,
-      cronExpression: "*/10 * * * *",
-    },
+    defaultValues,
   });
 
   const cronOptions = [
@@ -66,37 +79,55 @@ export default function NewMonitorPage() {
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof createMonitorSchema>) => {
+  const updateMonitorMutation = api.monitor.update.useMutation({
+    onSuccess: () => {
+      toast.success("Monitor updated successfully");
+      router.push("/app/monitors");
+    },
+    onError: (error) => {
+      toast.error("Failed to update monitor", {
+        description: error.message,
+      });
+    },
+  });
+
+  const onSubmit = async (values: z.input<typeof createMonitorSchema>) => {
     try {
-      createMonitorMutation.mutate(values);
+      if (mode === "create") {
+        createMonitorMutation.mutate(values);
+      } else {
+        updateMonitorMutation.mutate({ id: monitorId!, ...values });
+      }
     } catch (error) {
       console.error("Error creating monitor:", error);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/app/monitors">
-            <IconArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Link>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant={mode === "create" ? "default" : "outline"}>
+          {mode === "create" ? (
+            <IconPlus className="mr-2 h-4 w-4" />
+          ) : (
+            <IconEdit className="mr-2 h-4 w-4" />
+          )}
+          {mode === "create" ? "Create Monitor" : "Edit"}
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Create Monitor</h1>
-          <p className="text-muted-foreground">
-            Set up a new monitor to track your service
-          </p>
-        </div>
-      </div>
-
-      <div className="max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>Monitor Details</CardTitle>
-          </CardHeader>
-          <CardContent>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {mode === "create" ? "Create Monitor" : "Edit Monitor"}
+          </DialogTitle>
+          <DialogDescription>
+            {mode === "create"
+              ? "Set up a new monitor to track your service"
+              : "Edit the details of your monitor"}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-6">
+          <div className="max-w-2xl">
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
@@ -168,7 +199,8 @@ export default function NewMonitorPage() {
                           <SelectContent>
                             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                               <SelectItem key={num} value={num.toString()}>
-                                {num} consecutive failure{num > 1 ? "s" : ""}
+                                {num} consecutive failure
+                                {num > 1 ? "s" : ""}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -215,25 +247,27 @@ export default function NewMonitorPage() {
                     How often to check the monitor
                   </p>
                 </div>
-
-                <div className="flex gap-4 pt-4">
-                  <Button
-                    type="submit"
-                    isLoading={createMonitorMutation.isPending}
-                    loadingText="Creating..."
-                  >
-                    <IconPlus className="mr-2 h-4 w-4" />
-                    Create Monitor
-                  </Button>
-                  <Button type="button" variant="outline" asChild>
-                    <Link href="/app/monitors">Cancel</Link>
-                  </Button>
-                </div>
               </form>
             </Form>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="secondary">
+              Close
+            </Button>
+          </DialogClose>
+          <Button
+            type="submit"
+            isLoading={createMonitorMutation.isPending}
+            loadingText="Creating..."
+            onClick={form.handleSubmit(onSubmit)}
+          >
+            <IconPlus className="mr-2 h-4 w-4" />
+            {mode === "create" ? "Create Monitor" : "Save Changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,10 +1,12 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { StatusBadge } from "../shared/status-badge";
-import type { Monitor, UptimeStatus } from "@/types";
+import type { Monitor, MonitorCheck, UptimeStatus } from "@/types";
 import Link from "next/link";
 import { Button } from "../ui/button";
-import { IconExternalLink, IconSettings } from "@tabler/icons-react";
+import { IconExternalLink } from "@tabler/icons-react";
 import FormatTimestamp from "../format-timestamp";
+import { formatResponseTime } from "@/lib/date-utils";
+import MonitorDialog from "@/components/dialogs/monitor";
 
 export const monitorColumns: ColumnDef<Monitor>[] = [
   {
@@ -48,11 +50,56 @@ export const monitorColumns: ColumnDef<Monitor>[] = [
     accessorKey: "id",
     cell: ({ row }) => {
       return (
-        <Button variant="outline" size="sm" asChild>
-          <Link href={`/app/monitors/${row.original.id}`}>
-            <IconSettings className="h-4 w-4" />
-          </Link>
-        </Button>
+        <MonitorDialog
+          mode="update"
+          defaultValues={row.original}
+          monitorId={row.original.id}
+        />
+      );
+    },
+  },
+];
+
+export const monitorHistoryColumns: ColumnDef<MonitorCheck>[] = [
+  {
+    header: "Status",
+    accessorKey: "status",
+    cell: ({ cell }) => {
+      return <StatusBadge status={cell.getValue() as UptimeStatus} />;
+    },
+  },
+  {
+    header: "Checked At",
+    accessorKey: "checkedAt",
+    cell: ({ cell }) => {
+      return <FormatTimestamp timestamp={cell.getValue() as Date} />;
+    },
+  },
+  {
+    header: "Response Time",
+    accessorKey: "responseTime",
+    cell: ({ cell }) => {
+      return <p>{formatResponseTime(cell.getValue() as number)}</p>;
+    },
+  },
+  {
+    header: "Status Code",
+    accessorKey: "statusCode",
+    cell: ({ cell }) => {
+      const statusCode = cell.getValue() as number;
+      return (
+        <p>
+          HTTP
+          <Button variant="link">
+            <Link
+              href={`https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/${statusCode}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <code>{statusCode}</code>
+            </Link>
+          </Button>
+        </p>
       );
     },
   },

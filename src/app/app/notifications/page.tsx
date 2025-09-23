@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { api } from "@/trpc/react";
+import TitleBar from "@/components/shared/title-bar";
 
 export default function NotificationsPage() {
   const { data: initialSettings, refetch } = api.notifications.get.useQuery(
@@ -112,12 +113,10 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Notifications</h1>
-        <p className="text-muted-foreground">
-          Configure how you receive alerts and updates
-        </p>
-      </div>
+      <TitleBar
+        title="Notifications"
+        description="Configure how you receive alerts and updates"
+      />
 
       <Tabs defaultValue="rules" className="space-y-4">
         <TabsList>

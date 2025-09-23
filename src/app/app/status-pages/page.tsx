@@ -5,20 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  IconPlus,
-  IconSearch,
-  IconEdit,
-  IconTrash,
-  IconWorld,
-} from "@tabler/icons-react";
+import { IconSearch, IconTrash, IconWorld } from "@tabler/icons-react";
 import Link from "next/link";
 import { api } from "@/trpc/react";
+import TitleBar from "@/components/shared/title-bar";
+import StatusPageDialog from "@/components/dialogs/status-page";
+import { toast } from "sonner";
 
 export default function StatusPagesPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: statusPages = [], isLoading } = api.statusPage.list.useQuery({
+  const {
+    data: statusPages = [],
+    isLoading,
+    refetch,
+  } = api.statusPage.list.useQuery({
     includeMonitors: true,
   });
 
@@ -36,22 +37,26 @@ export default function StatusPagesPage() {
     }).format(date);
   };
 
+  const deleteStatusPageMutation = api.statusPage.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Status page deleted");
+      void refetch();
+    },
+    onError: (error) => {
+      toast.error("Failed to delete status page", {
+        description: error.message,
+      });
+    },
+  });
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Status Pages</h1>
-          <p className="text-muted-foreground">
-            Create and manage public status pages
-          </p>
-        </div>
-        <Button asChild>
-          <Link href="/app/status-pages/new">
-            <IconPlus className="mr-2 h-4 w-4" />
-            Create Status Page
-          </Link>
-        </Button>
-      </div>
+      <TitleBar
+        title="Status Pages"
+        description="Create and manage public status pages"
+      >
+        <StatusPageDialog mode="create" />
+      </TitleBar>
 
       {/* Search */}
       <Card>
@@ -111,14 +116,35 @@ export default function StatusPagesPage() {
                         View
                       </Link>
                     </Button>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/app/status-pages/${page.id}`}>
-                        <IconEdit className="mr-2 h-4 w-4" />
-                        Edit
-                      </Link>
-                    </Button>
+                    <StatusPageDialog
+                      mode="update"
+                      defaultValues={{
+                        name: page.name,
+                        description: page.description ?? "",
+                      }}
+                      statusPageId={page.id}
+                      monitors={
+                        (
+                          page as unknown as {
+                            monitors: Array<{
+                              id: string;
+                              name: string;
+                              url: string;
+                            }>;
+                          }
+                        ).monitors
+                      }
+                    />
                   </div>
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    isLoading={deleteStatusPageMutation.isPending}
+                    loadingText="Deleting..."
+                    onClick={() => {
+                      deleteStatusPageMutation.mutate({ id: page.id });
+                    }}
+                  >
                     <IconTrash className="h-4 w-4" />
                   </Button>
                 </div>
@@ -132,12 +158,7 @@ export default function StatusPagesPage() {
                 ? "No status pages match your search"
                 : "No status pages yet"}
             </p>
-            <Button asChild>
-              <Link href="/app/status-pages/new">
-                <IconPlus className="mr-2 h-4 w-4" />
-                Create Your First Status Page
-              </Link>
-            </Button>
+            <StatusPageDialog mode="create" />
           </div>
         )}
       </div>

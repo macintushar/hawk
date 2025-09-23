@@ -1,19 +1,9 @@
-import {
-  createTRPCRouter,
-  protectedProcedure,
-  publicProcedure,
-} from "@/server/api/trpc";
+import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
+
 import { monitoringService } from "@/lib/monitoring-service";
 import { utcNow } from "@/lib/date-utils";
 
 export const pingRouter = createTRPCRouter({
-  // Manual trigger for testing
-  trigger: protectedProcedure.query(() => {
-    return {
-      status: `Triggered Status Fetch`,
-    };
-  }),
-
   // Public endpoint for cron jobs to trigger monitoring checks
   checkAll: publicProcedure.mutation(async () => {
     try {

@@ -19,9 +19,9 @@ export const signInSchema = z.object({
 // Monitor schemas
 export const createMonitorSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  url: z.string().url("Invalid URL"),
+  url: z.url("Invalid URL"),
   threshold: z.number().int().min(1).max(10).default(3),
-  cronExpression: z.string().default("*/5 * * * *"), // Default: every 5 minutes
+  cronExpression: z.string().default("*/10 * * * *"), // Default: every 10 minutes
 });
 
 export const updateMonitorSchema = z.object({

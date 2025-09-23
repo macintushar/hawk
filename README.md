@@ -5,7 +5,7 @@
 
 > **Note**: Hawk is still in development. Features may change or break.
 
-Hawk is an open‑source, self‑hosted monitoring platform. Track uptime and performance for your services, get alerted on incidents, and publish beautiful public status pages — all in one place.
+Hawk is an open‑source, self‑hosted monitoring platform. Track uptime and performance for your services, get alerted on incidents, and publish beautiful public status pages, all in one place.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/macintushar/hawk)
 

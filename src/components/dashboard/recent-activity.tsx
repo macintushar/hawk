@@ -72,7 +72,7 @@ export function RecentActivity({
             <div className="py-8 text-center">
               <p className="text-muted-foreground mb-4">No monitors yet</p>
               <Button asChild>
-                <Link href="/app/monitors/new">
+                <Link href="/app/monitors">
                   <IconPlus className="mr-2 h-4 w-4" />
                   Create Monitor
                 </Link>
@@ -99,7 +99,7 @@ export function RecentActivity({
             <div className="py-8 text-center">
               <p className="text-muted-foreground mb-4">No incidents yet</p>
               <Button asChild>
-                <Link href="/app/incidents/new">
+                <Link href="/app/incidents">
                   <IconPlus className="mr-2 h-4 w-4" />
                   Create Incident
                 </Link>

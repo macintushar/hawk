@@ -10,6 +10,7 @@ import { IconUser, IconKey, IconCheck } from "@tabler/icons-react";
 import { updateUser, changePassword, useSession } from "@/lib/auth-client";
 import { HiddenInput } from "@/components/ui/hidden-input";
 import { toast } from "sonner";
+import TitleBar from "@/components/shared/title-bar";
 
 export default function SettingsPage() {
   const session = useSession();
@@ -49,12 +50,10 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your account and system preferences
-        </p>
-      </div>
+      <TitleBar
+        title="Settings"
+        description="Manage your account and system preferences"
+      />
 
       <Tabs defaultValue="profile" className="space-y-4">
         <TabsList>

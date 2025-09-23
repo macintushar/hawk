@@ -1,28 +1,27 @@
 "use client";
 
+import { toast } from "sonner";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { IconRefresh } from "@tabler/icons-react";
+
+import Filter from "@/components/filter";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DataTable } from "@/components/data-table";
+import TitleBar from "@/components/shared/title-bar";
+import MonitorDialog from "@/components/dialogs/monitor";
+import { monitorColumns } from "@/components/tables/monitor-columns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import { StatusBadge } from "@/components/shared/status-badge";
-import {
-  IconPlus,
-  IconSearch,
-  IconFilter,
-  IconRefresh,
-} from "@tabler/icons-react";
-import Link from "next/link";
 import { api } from "@/trpc/react";
-import { toast } from "sonner";
-import { DataTable } from "@/components/data-table";
-import { monitorColumns } from "@/components/tables/monitor-columns";
 
 export default function MonitorsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "all" | "up" | "down" | "unknown"
   >("all");
+
+  const router = useRouter();
 
   const {
     data: monitors = [],
@@ -95,20 +94,9 @@ export default function MonitorsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Monitors</h1>
-          <p className="text-muted-foreground">
-            Manage and monitor your services
-          </p>
-        </div>
-        <Button asChild>
-          <Link href="/app/monitors/new">
-            <IconPlus className="mr-2 h-4 w-4" />
-            Create Monitor
-          </Link>
-        </Button>
-      </div>
+      <TitleBar title="Monitors" description="Manage and monitor your services">
+        <MonitorDialog mode="create" />
+      </TitleBar>
 
       {/* Status Overview */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -153,71 +141,33 @@ export default function MonitorsPage() {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <IconFilter className="h-5 w-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center">
-            <div className="relative flex-1">
-              <IconSearch className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-              <Input
-                placeholder="Search monitors..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={statusFilter === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("all")}
-              >
-                All
-              </Button>
-              <Button
-                variant={statusFilter === "up" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("up")}
-              >
-                <StatusBadge status="up" className="mr-2" />
-                Up
-              </Button>
-              <Button
-                variant={statusFilter === "down" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("down")}
-              >
-                <StatusBadge status="down" className="mr-2" />
-                Down
-              </Button>
-              <Button
-                variant={statusFilter === "unknown" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("unknown")}
-              >
-                <StatusBadge status="unknown" className="mr-2" />
-                Unknown
-              </Button>
-            </div>
-            <Button variant="outline" size="sm">
-              <IconRefresh className="mr-2 h-4 w-4" />
-              Refresh
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <Filter
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        onRefresh={() => void refetch()}
+        badgeType="monitor"
+        filterButtons={[
+          { label: "All", value: "all" },
+          { label: "Up", value: "up" },
+          { label: "Down", value: "down" },
+          { label: "Unknown", value: "unknown" },
+        ]}
+        filter={statusFilter}
+        setFilter={(filter) =>
+          setStatusFilter(filter as "up" | "down" | "unknown" | "all")
+        }
+      />
 
       {/* Monitors Grid */}
       <div className="w-full">
         {isLoading ? (
           <h1>Loading...</h1>
         ) : filteredMonitors.length > 0 ? (
-          <DataTable columns={monitorColumns} data={filteredMonitors} />
+          <DataTable
+            columns={monitorColumns}
+            data={filteredMonitors}
+            onRowClick={(row) => router.push(`/app/monitors/${row.id}`)}
+          />
         ) : (
           <div className="col-span-full py-12 text-center">
             <p className="text-muted-foreground mb-4">
@@ -225,12 +175,7 @@ export default function MonitorsPage() {
                 ? "No monitors match your filters"
                 : "No monitors yet"}
             </p>
-            <Button asChild>
-              <Link href="/app/monitors/new">
-                <IconPlus className="mr-2 h-4 w-4" />
-                Create Your First Monitor
-              </Link>
-            </Button>
+            {monitors.length === 0 && <MonitorDialog mode="create" />}
           </div>
         )}
       </div>

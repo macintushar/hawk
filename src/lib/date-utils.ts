@@ -45,3 +45,8 @@ export const formatDuration = (start: Date, end?: Date | null) => {
   }
   return `${minutes}m`;
 };
+
+export const formatResponseTime = (time: number | null) => {
+  if (!time) return "N/A";
+  return `${time}ms`;
+};

@@ -20,6 +20,49 @@ export interface CheckResult {
 }
 
 export class MonitoringService {
+  // Very small cron helper: supports "every N minutes" step syntax (e.g., every 5 minutes).
+  // Falls back to 5 minutes when unable to parse.
+  private getIntervalMsFromCron(
+    cronExpression: string | null | undefined,
+  ): number {
+    const fallbackMinutes = 10;
+    if (!cronExpression) return fallbackMinutes * 60 * 1000;
+
+    // Match patterns like "*/5 * * * *" -> every 5 minutes
+    const match = cronExpression.match(/^\*\/(\d+) \* \* \* \*$/);
+    if (match) {
+      const minutes = Number(match[1]);
+      if (Number.isFinite(minutes) && minutes > 0) {
+        return minutes * 60 * 1000;
+      }
+    }
+
+    // Fallback
+    return fallbackMinutes * 60 * 1000;
+  }
+
+  private isMonitorDue(
+    lastChecked: Date | null | undefined,
+    cronExpression: string | null | undefined,
+  ): boolean {
+    const intervalMs = this.getIntervalMsFromCron(cronExpression);
+    if (!lastChecked) return true;
+    return lastChecked.getTime() <= Date.now() - intervalMs;
+  }
+
+  private async isMonitorDueById(monitorId: string): Promise<boolean> {
+    const m = await db
+      .select({
+        lastChecked: monitor.lastChecked,
+        cronExpression: monitor.cronExpression,
+      })
+      .from(monitor)
+      .where(eq(monitor.id, monitorId))
+      .limit(1);
+    const row = m[0];
+    if (!row) return false;
+    return this.isMonitorDue(row.lastChecked, row.cronExpression);
+  }
   /**
    * Perform an HTTP check for a monitor
    */
@@ -312,12 +355,9 @@ export class MonitoringService {
       })
       .from(monitor);
 
-    // TODO: Implement cron expression parsing and scheduling
-    // For now, return all monitors that haven't been checked in the last 5 minutes
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-
+    // Determine due based on each monitor's cronExpression and lastChecked
     return monitors
-      .filter((m) => !m.lastChecked || m.lastChecked < fiveMinutesAgo)
+      .filter((m) => this.isMonitorDue(m.lastChecked, m.cronExpression))
       .map((m) => ({ id: m.id, cronExpression: m.cronExpression }));
   }
 
@@ -331,7 +371,14 @@ export class MonitoringService {
     const batchSize = 10;
     for (let i = 0; i < monitorsToCheck.length; i += batchSize) {
       const batch = monitorsToCheck.slice(i, i + batchSize);
-      await Promise.all(batch.map((monitor) => this.checkMonitor(monitor.id)));
+      await Promise.all(
+        batch.map(async (m) => {
+          // Guard against rapid successive triggers: re-check due status just-in-time
+          const stillDue = await this.isMonitorDueById(m.id);
+          if (!stillDue) return;
+          await this.checkMonitor(m.id);
+        }),
+      );
     }
   }
 }

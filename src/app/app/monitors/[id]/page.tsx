@@ -10,7 +10,6 @@ import { IncidentStatusBadge } from "@/components/shared/incident-status-badge";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import {
   IconArrowLeft,
-  IconEdit,
   IconTrash,
   IconRefresh,
   IconClock,
@@ -20,6 +19,12 @@ import {
 import Link from "next/link";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
+import MonitorDialog from "@/components/dialogs/monitor";
+import TitleBar from "@/components/shared/title-bar";
+import { DataTable } from "@/components/data-table";
+import { monitorHistoryColumns } from "@/components/tables/monitor-columns";
+import FormatTimestamp from "@/components/format-timestamp";
+import { formatResponseTime } from "@/lib/date-utils";
 
 export default function MonitorDetailPage() {
   const params = useParams();
@@ -133,39 +138,21 @@ export default function MonitorDetailPage() {
     );
   }
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  };
-
-  const formatResponseTime = (time: number | null) => {
-    if (!time) return "N/A";
-    return `${time}ms`;
-  };
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <TitleBar
+        title={monitor.name}
+        description={monitor.url}
+        leftElement={
           <Button variant="outline" size="sm" asChild>
             <Link href="/app/monitors">
               <IconArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Link>
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {monitor.name}
-            </h1>
-            <p className="text-muted-foreground">{monitor.url}</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
+        }
+      >
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Button
             variant="outline"
             onClick={handleCheck}
@@ -175,12 +162,11 @@ export default function MonitorDetailPage() {
             <IconRefresh className="mr-2 h-4 w-4" />
             Check Now
           </Button>
-          <Button variant="outline" asChild>
-            <Link href={`/app/monitors/${monitorId}/edit`}>
-              <IconEdit className="mr-2 h-4 w-4" />
-              Edit
-            </Link>
-          </Button>
+          <MonitorDialog
+            mode="update"
+            defaultValues={monitor}
+            monitorId={monitorId}
+          />
           <Button
             variant="destructive"
             onClick={handleDelete}
@@ -191,7 +177,7 @@ export default function MonitorDetailPage() {
             Delete
           </Button>
         </div>
-      </div>
+      </TitleBar>
 
       {/* Monitor Overview */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -209,7 +195,11 @@ export default function MonitorDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="text-sm">
-              {monitor.lastChecked ? formatDate(monitor.lastChecked) : "Never"}
+              {monitor.lastChecked ? (
+                <FormatTimestamp timestamp={monitor.lastChecked} />
+              ) : (
+                "Never"
+              )}
             </div>
           </CardContent>
         </Card>
@@ -253,38 +243,10 @@ export default function MonitorDetailPage() {
               {checkMonitorMutation.isPending ? (
                 <TableSkeleton rows={5} />
               ) : (
-                <div className="space-y-4">
-                  {checkHistory.map((check) => (
-                    <div
-                      key={check.id}
-                      className="flex items-center justify-between rounded-lg border p-4"
-                    >
-                      <div className="flex items-center gap-4">
-                        <StatusBadge status={check.status} />
-                        <div>
-                          <div className="font-medium">
-                            {check.statusCode
-                              ? `HTTP ${check.statusCode}`
-                              : "Error"}
-                          </div>
-                          <div className="text-muted-foreground text-sm">
-                            {formatDate(check.checkedAt)}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium">
-                          {formatResponseTime(check.responseTime)}
-                        </div>
-                        {check.error && (
-                          <div className="text-sm text-red-600">
-                            {check.error}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <DataTable
+                  columns={monitorHistoryColumns}
+                  data={checkHistory}
+                />
               )}
             </CardContent>
           </Card>
@@ -314,11 +276,16 @@ export default function MonitorDetailPage() {
                           {incident.description}
                         </p>
                         <div className="text-muted-foreground text-sm">
-                          Started: {formatDate(incident.startedAt)}
+                          Started:{" "}
+                          <FormatTimestamp timestamp={incident.startedAt} />
+                          <FormatTimestamp timestamp={incident.startedAt} />
                           {incident.resolvedAt && (
                             <span>
                               {" "}
-                              • Resolved: {formatDate(incident.resolvedAt)}
+                              • Resolved:{" "}
+                              <FormatTimestamp
+                                timestamp={incident.resolvedAt}
+                              />
                             </span>
                           )}
                         </div>
@@ -375,7 +342,7 @@ export default function MonitorDetailPage() {
                 <div>
                   <label className="text-sm font-medium">Created</label>
                   <div className="text-muted-foreground text-sm">
-                    {formatDate(monitor.createdAt)}
+                    <FormatTimestamp timestamp={monitor.createdAt} />
                   </div>
                 </div>
               </div>

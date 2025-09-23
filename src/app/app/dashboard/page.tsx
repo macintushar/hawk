@@ -2,8 +2,9 @@
 
 import { OverviewCards } from "@/components/dashboard/overview-cards";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
-import { QuickActions } from "@/components/dashboard/quick-actions";
+
 import { api } from "@/trpc/react";
+import TitleBar from "@/components/shared/title-bar";
 
 export default function Dashboard() {
   const {
@@ -38,12 +39,10 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Monitor your services and track their status
-        </p>
-      </div>
+      <TitleBar
+        title="Dashboard"
+        description="Monitor your services and track their status"
+      />
 
       <OverviewCards
         data={stats}
@@ -55,8 +54,6 @@ export default function Dashboard() {
         incidents={incidentsData ?? []}
         isLoading={isLoadingMonitors || isLoadingIncidents}
       />
-
-      <QuickActions />
     </div>
   );
 }

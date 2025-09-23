@@ -188,9 +188,9 @@ export default async function PublicStatusPage({
             <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full border">
               <IconAlertCircle className="text-muted-foreground h-5 w-5" />
             </div>
-            <div className="font-medium">No recent notices</div>
+            <div className="font-medium">No recent incidents</div>
             <p className="text-muted-foreground text-sm">
-              There have been no reports within the last 7 days.
+              There have been no incidents within the last 7 days.
             </p>
           </div>
         )}

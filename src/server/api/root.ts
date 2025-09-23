@@ -2,7 +2,6 @@ import { postRouter } from "@/server/api/routers/post";
 import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
 
 import { monitorRouter } from "./routers/monitor";
-import { statusRouter } from "./routers/status";
 import { pingRouter } from "./routers/ping";
 import { statusPageRouter } from "./routers/status-page";
 import { incidentRouter } from "./routers/incident";
@@ -16,7 +15,6 @@ import { notificationsRouter } from "./routers/notifications";
 export const appRouter = createTRPCRouter({
   post: postRouter,
   monitor: monitorRouter,
-  status: statusRouter,
   ping: pingRouter,
   statusPage: statusPageRouter,
   incident: incidentRouter,
