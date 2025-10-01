@@ -15,7 +15,7 @@ Hawk is an open‑source, self‑hosted monitoring platform. Track uptime and pe
 - **Incidents**: Automatic incident creation/resolution based on consecutive failures
 - **Notifications (Slack)**: Send alerts to Slack via Incoming Webhooks on down/up events
 - **Public status pages**: Share live uptime charts and incident history with your users
-- **Authentication**: Secure sign‑in/sign‑up flows
+- **Authentication**: Secure sign‑in/sign‑up flows with email/password and optional GitHub OAuth
 - **Dashboard**: Overview cards, recent activity, and quick actions for fast navigation
 
 ## Getting Started
@@ -45,9 +45,42 @@ DATABASE_TOKEN="<your-turso-auth-token>"
 BETTER_AUTH_SECRET="<secure-random-string>"
 BASE_URL="http://localhost:3000"
 NODE_ENV="development"
+
+# GitHub OAuth (optional)
+# Set to "true" to enable GitHub OAuth
+ENABLE_GITHUB_OAUTH="false"
+GITHUB_CLIENT_ID="<your-github-oauth-app-client-id>"
+GITHUB_CLIENT_SECRET="<your-github-oauth-app-client-secret>"
 ```
 
 > _Note: All server variables are validated at build time via `@t3-oss/env-nextjs`._
+
+#### Setting up GitHub OAuth (Optional)
+
+If you want to enable GitHub OAuth for sign-in/sign-up:
+
+1. Create a GitHub OAuth App:
+   - Go to [GitHub Developer Settings](https://github.com/settings/developers)
+   - Click "New OAuth App"
+   - Set **Application name**: `Hawk` (or your preferred name)
+   - Set **Homepage URL**: `http://localhost:3060` (or your production URL)
+   - Set **Authorization callback URL**: `http://localhost:3060/api/auth/callback/github` (update the base URL for production)
+   - Click "Register application"
+
+2. Copy the credentials:
+   - Copy the **Client ID**
+   - Generate and copy a **Client Secret**
+
+3. Update your `.env.local` file:
+   ```dotenv
+   ENABLE_GITHUB_OAUTH="true"
+   GITHUB_CLIENT_ID="<your-client-id>"
+   GITHUB_CLIENT_SECRET="<your-client-secret>"
+   ```
+
+4. Restart your development server
+
+The GitHub OAuth button will now appear on the sign-in and sign-up pages.
 
 ### Database Setup & Migrations
 
