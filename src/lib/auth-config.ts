@@ -1,4 +1,3 @@
-import "server-only";
 import { env } from "@/env";
 
-export const isGithubOAuthEnabled = env.ENABLE_GITHUB_OAUTH;
+export const isGithubOAuthEnabled = env.NEXT_PUBLIC_ENABLE_GITHUB_OAUTH;

@@ -14,7 +14,7 @@ export const auth = betterAuth({
     enabled: true,
   },
   socialProviders: {
-    github: env.ENABLE_GITHUB_OAUTH
+    github: env.NEXT_PUBLIC_ENABLE_GITHUB_OAUTH
       ? {
           clientId: env.GITHUB_CLIENT_ID ?? "",
           clientSecret: env.GITHUB_CLIENT_SECRET ?? "",

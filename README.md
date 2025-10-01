@@ -48,7 +48,7 @@ NODE_ENV="development"
 
 # GitHub OAuth (optional)
 # Set to "true" to enable GitHub OAuth
-ENABLE_GITHUB_OAUTH="false"
+NEXT_PUBLIC_ENABLE_GITHUB_OAUTH="false"
 GITHUB_CLIENT_ID="<your-github-oauth-app-client-id>"
 GITHUB_CLIENT_SECRET="<your-github-oauth-app-client-secret>"
 ```
@@ -73,7 +73,7 @@ If you want to enable GitHub OAuth for sign-in/sign-up:
 
 3. Update your `.env.local` file:
    ```dotenv
-   ENABLE_GITHUB_OAUTH="true"
+   NEXT_PUBLIC_ENABLE_GITHUB_OAUTH="true"
    GITHUB_CLIENT_ID="<your-client-id>"
    GITHUB_CLIENT_SECRET="<your-client-secret>"
    ```

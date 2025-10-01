@@ -6,7 +6,7 @@ Hawk supports GitHub OAuth for easy sign-in and sign-up. This guide walks you th
 
 1. Create a GitHub OAuth App (takes ~2 minutes)
 2. Copy your Client ID and Client Secret
-3. Set `ENABLE_GITHUB_OAUTH="true"` in your `.env` file
+3. Set `NEXT_PUBLIC_ENABLE_GITHUB_OAUTH="true"` in your `.env` file
 4. Add `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` to your `.env` file
 5. Restart your server
 6. GitHub OAuth button will appear on sign-in and sign-up pages
@@ -50,7 +50,7 @@ Update your `.env` or `.env.local` file with the following:
 
 ```dotenv
 # Enable GitHub OAuth
-ENABLE_GITHUB_OAUTH="true"
+NEXT_PUBLIC_ENABLE_GITHUB_OAUTH="true"
 
 # GitHub OAuth Credentials
 GITHUB_CLIENT_ID="your_github_client_id_here"
@@ -59,7 +59,7 @@ GITHUB_CLIENT_SECRET="your_github_client_secret_here"
 
 ### Environment Variables Explained:
 
-- `ENABLE_GITHUB_OAUTH`: Set to `"true"` to enable GitHub OAuth, `"false"` to disable (defaults to `"false"`)
+- `NEXT_PUBLIC_ENABLE_GITHUB_OAUTH`: Set to `"true"` to enable GitHub OAuth, `"false"` to disable (defaults to `"false"`)
 - `GITHUB_CLIENT_ID`: Your GitHub OAuth App Client ID
 - `GITHUB_CLIENT_SECRET`: Your GitHub OAuth App Client Secret
 
@@ -97,7 +97,7 @@ For production deployments, redeploy your application with the updated environme
 
 To disable GitHub OAuth:
 
-1. Set `ENABLE_GITHUB_OAUTH="false"` in your `.env` file
+1. Set `NEXT_PUBLIC_ENABLE_GITHUB_OAUTH="false"` in your `.env` file
 2. Restart your server
 3. The GitHub OAuth button will no longer appear
 
@@ -105,7 +105,7 @@ Alternatively, you can completely remove the GitHub OAuth environment variables:
 
 ```dotenv
 # Remove or comment out these lines:
-# ENABLE_GITHUB_OAUTH="true"
+# NEXT_PUBLIC_ENABLE_GITHUB_OAUTH="true"
 # GITHUB_CLIENT_ID="..."
 # GITHUB_CLIENT_SECRET="..."
 ```
@@ -121,7 +121,7 @@ For production deployments:
    - Railway: Variables
    - etc.
 3. Make sure to set all three variables:
-   - `ENABLE_GITHUB_OAUTH="true"`
+   - `NEXT_PUBLIC_ENABLE_GITHUB_OAUTH="true"`
    - `GITHUB_CLIENT_ID="your_production_client_id"`
    - `GITHUB_CLIENT_SECRET="your_production_client_secret"`
 
@@ -129,7 +129,7 @@ For production deployments:
 
 ### "Continue with GitHub" button doesn't appear
 
-- Check that `ENABLE_GITHUB_OAUTH="true"` is set in your `.env` file
+- Check that `NEXT_PUBLIC_ENABLE_GITHUB_OAUTH="true"` is set in your `.env` file
 - Restart your development server
 - Check browser console for any errors
 
