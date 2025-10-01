@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: "Hawk",
   description:
     "Hawk is a platform for monitoring your website and services. Get notified when your website is down or when your service is not working as expected.",
-  icons: [{ rel: "icon", url: "/favicon.svg" }],
+  icons: [{ rel: "icon", url: "/favicon.ico" }],
   openGraph: {
     images: "/hawk-og.png",
   },
