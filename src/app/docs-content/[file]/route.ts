@@ -10,10 +10,10 @@ const ALLOWED_FILES = [
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { file: string } }
+  { params }: { params: Promise<{ file: string }> }
 ) {
   try {
-    const fileName = params.file;
+    const { file: fileName } = await params;
 
     // Security: only allow specific files
     if (!ALLOWED_FILES.includes(fileName)) {
