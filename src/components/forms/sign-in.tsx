@@ -9,6 +9,7 @@ import Link from "next/link";
 import type z from "zod";
 
 import { signIn } from "@/lib/auth-client";
+import { isGithubOAuthEnabled } from "@/lib/auth-config";
 
 import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
@@ -25,6 +26,7 @@ import {
 
 import { Separator } from "../ui/separator";
 import { HiddenInput } from "../ui/hidden-input";
+import { GitHubOAuthButton } from "../auth/github-oauth-button";
 
 import { signInSchema } from "@/schemas";
 
@@ -68,7 +70,22 @@ export function SignInForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <div className="grid gap-6">
-            <Separator />
+            {isGithubOAuthEnabled && (
+              <>
+                <GitHubOAuthButton />
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background text-muted-foreground px-2">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
+            {!isGithubOAuthEnabled && <Separator />}
             <div className="grid gap-6">
               <FormField
                 control={form.control}
