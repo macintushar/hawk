@@ -49,7 +49,7 @@ export const routes: NavGroup = {
     },
     {
       title: "Documentation",
-      url: "/docs",
+      url: "/app/docs",
       icon: IconBook,
     },
     {

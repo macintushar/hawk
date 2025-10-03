@@ -72,7 +72,7 @@ function DocsContent({ selectedDocParam }: { selectedDocParam: string }) {
     void loadDoc();
   }, [selectedDoc]);
 
-  const currentDoc = docsConfig.find((d) => d.id === selectedDoc) ?? docsConfig[0];
+  const currentDoc = docsConfig.find((d) => d.id === selectedDoc) ?? docsConfig[0]!;
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -91,7 +91,7 @@ function DocsContent({ selectedDocParam }: { selectedDocParam: string }) {
             {docsConfig.map((doc) => (
               <Link
                 key={doc.id}
-                href={`/docs?doc=${doc.id}`}
+                href={`/app/docs?doc=${doc.id}`}
                 className="block"
               >
                 <Button
