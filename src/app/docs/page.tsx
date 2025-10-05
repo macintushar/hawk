@@ -160,7 +160,7 @@ function DocsContent({ selectedDocParam }: { selectedDocParam: string }) {
             {docsConfig.map((doc) => (
               <Link
                 key={doc.id}
-                href={`/app/docs?doc=${doc.id}`}
+                href={`/docs?doc=${doc.id}`}
                 className="block"
               >
                 <Button
