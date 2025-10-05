@@ -5,9 +5,19 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { IconBook, IconChevronRight } from "@tabler/icons-react";
+import { IconBook, IconChevronRight, IconHome } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 import "highlight.js/styles/github-dark.css";
 
@@ -120,91 +130,157 @@ function DocsContent({ selectedDocParam }: { selectedDocParam: string }) {
   const currentDoc = docsConfig.find((d) => d.id === selectedDoc) ?? docsConfig[0]!;
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <>
       <style jsx global>{`
         pre {
           position: relative;
+          padding: 1rem;
+          overflow-x: auto;
         }
         .copy-button {
           position: absolute;
-          top: 0.5rem;
-          right: 0.5rem;
+          top: 0.75rem;
+          right: 0.75rem;
           padding: 0.5rem;
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 0.25rem;
-          color: inherit;
+          background: hsl(var(--muted));
+          border: 1px solid hsl(var(--border));
+          border-radius: 0.375rem;
+          color: hsl(var(--muted-foreground));
           cursor: pointer;
           opacity: 0;
-          transition: opacity 0.2s;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
         pre:hover .copy-button {
           opacity: 1;
         }
         .copy-button:hover {
-          background: rgba(255, 255, 255, 0.2);
+          background: hsl(var(--accent));
+          color: hsl(var(--accent-foreground));
+          border-color: hsl(var(--accent));
+        }
+        .copy-button:active {
+          transform: scale(0.95);
         }
       `}</style>
-      <div className="flex items-center gap-2">
-        <IconBook className="h-6 w-6" />
-        <h1 className="text-2xl font-semibold">Documentation</h1>
+      <div className="container mx-auto max-w-7xl px-4 py-6 md:py-8 lg:py-12">
+      {/* Breadcrumb Navigation */}
+      <Breadcrumb className="mb-6">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/">
+                <IconHome className="h-4 w-4" />
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/docs">Documentation</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{currentDoc.title}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      {/* Header */}
+      <div className="mb-8 space-y-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+            <IconBook className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+              Documentation
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Learn how to set up and use Hawk
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-        {/* Sidebar */}
-        <aside className="space-y-2 lg:sticky lg:top-4 lg:self-start">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Contents
-          </h2>
-          <nav className="space-y-1">
-            {docsConfig.map((doc) => (
-              <Link
-                key={doc.id}
-                href={`/docs?doc=${doc.id}`}
-                className="block"
-              >
-                <Button
-                  variant={selectedDoc === doc.id ? "secondary" : "ghost"}
-                  className="w-full justify-start text-left"
-                >
-                  <div className="flex flex-1 flex-col items-start gap-0.5">
-                    <span className="font-medium">{doc.title}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {doc.description}
-                    </span>
-                  </div>
-                  {selectedDoc === doc.id && (
-                    <IconChevronRight className="ml-auto h-4 w-4 shrink-0" />
-                  )}
-                </Button>
-              </Link>
-            ))}
-          </nav>
+      <Separator className="mb-8" />
+
+      <div className="grid gap-6 lg:grid-cols-[280px_1fr] lg:gap-8">
+        {/* Sidebar Navigation */}
+        <aside className="space-y-4">
+          <div className="lg:sticky lg:top-6">
+            <div className="rounded-lg border bg-card p-4">
+              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Table of Contents
+              </h2>
+              <nav className="space-y-1">
+                {docsConfig.map((doc) => (
+                  <Link
+                    key={doc.id}
+                    href={`/docs?doc=${doc.id}`}
+                    className="block"
+                  >
+                    <Button
+                      variant={selectedDoc === doc.id ? "secondary" : "ghost"}
+                      className="w-full justify-start text-left h-auto py-3 px-3"
+                    >
+                      <div className="flex flex-1 flex-col items-start gap-1">
+                        <span className="font-medium text-sm">{doc.title}</span>
+                        <span className="text-xs text-muted-foreground line-clamp-2">
+                          {doc.description}
+                        </span>
+                      </div>
+                      {selectedDoc === doc.id && (
+                        <IconChevronRight className="ml-2 h-4 w-4 shrink-0" />
+                      )}
+                    </Button>
+                  </Link>
+                ))}
+              </nav>
+            </div>
+          </div>
         </aside>
 
-        {/* Content */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{currentDoc.title}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="text-muted-foreground">Loading...</div>
-              </div>
-            ) : (
-              <article className="prose prose-slate dark:prose-invert max-w-none">
-                <ReactMarkdown 
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeHighlight]}
-                >
-                  {content}
-                </ReactMarkdown>
-              </article>
-            )}
-          </CardContent>
-        </Card>
+        {/* Main Content */}
+        <div className="min-w-0">
+          <Card className="shadow-sm">
+            <CardHeader className="space-y-1 pb-6">
+              <CardTitle className="text-2xl">{currentDoc.title}</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {currentDoc.description}
+              </p>
+            </CardHeader>
+            <CardContent className="pb-8">
+              {loading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-8 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                  <Skeleton className="h-4 w-full" />
+                  <div className="pt-4">
+                    <Skeleton className="h-32 w-full" />
+                  </div>
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-4/6" />
+                </div>
+              ) : (
+                <article className="prose prose-slate dark:prose-invert max-w-none prose-headings:scroll-mt-20 prose-headings:font-semibold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:leading-7 prose-pre:bg-muted prose-pre:border prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-code:text-sm prose-code:font-mono prose-strong:font-semibold">
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeHighlight]}
+                  >
+                    {content}
+                  </ReactMarkdown>
+                </article>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
+    </>
   );
 }
