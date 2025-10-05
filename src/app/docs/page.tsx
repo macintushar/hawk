@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { IconBook, IconChevronRight, IconHome } from "@tabler/icons-react";
+import { IconBook, IconHome } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -233,9 +233,6 @@ function DocsContent({ selectedDocParam }: { selectedDocParam: string }) {
                           {doc.description}
                         </span>
                       </div>
-                      {selectedDoc === doc.id && (
-                        <IconChevronRight className="ml-2 h-4 w-4 shrink-0" />
-                      )}
                     </Button>
                   </Link>
                 ))}
