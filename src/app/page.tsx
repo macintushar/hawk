@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   IconAlertCircle,
   IconAppWindow,
+  IconBook,
   IconBrandGithub,
   IconBrandSlack,
   IconDashboard,
@@ -87,6 +88,17 @@ function NavToAppButton({ isSignedIn }: { isSignedIn: boolean }) {
   );
 }
 
+function DocsButton() {
+  return (
+    <Button variant="outline" size="sm" asChild>
+      <Link href="/docs">
+        <IconBook className="mr-2 h-4 w-4" />
+        Documentation
+      </Link>
+    </Button>
+  );
+}
+
 export default async function HawkLandingPage() {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -108,6 +120,7 @@ export default async function HawkLandingPage() {
             />
           </div>
           <div className="flex items-center gap-3">
+            <DocsButton />
             <ViewSourceButton />
             <NavToAppButton isSignedIn={isSignedIn} />
             <ThemeSwitcher side="bottom" variant="outline" />
@@ -131,8 +144,9 @@ export default async function HawkLandingPage() {
             self-hosted platform.
           </p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
-            <ViewSourceButton />
             <NavToAppButton isSignedIn={isSignedIn} />
+            <DocsButton />
+            <ViewSourceButton />
           </div>
         </div>
       </section>
@@ -181,8 +195,9 @@ export default async function HawkLandingPage() {
           </p>
 
           <div className="mb-8 flex flex-col justify-center gap-4 sm:flex-row">
-            <ViewSourceButton />
             <NavToAppButton isSignedIn={isSignedIn} />
+            <DocsButton />
+            <ViewSourceButton />
           </div>
 
           <div className="text-muted-foreground flex items-center justify-center gap-6 text-sm">
@@ -220,6 +235,12 @@ export default async function HawkLandingPage() {
             </div>
 
             <div className="flex items-center gap-6">
+              <Link
+                href="/docs"
+                className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+              >
+                Documentation
+              </Link>
               <a
                 href={GITHUB_URL}
                 target="_blank"
