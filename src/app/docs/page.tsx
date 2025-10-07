@@ -18,6 +18,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { LandingHeader } from "@/components/nav/landing-header";
+import { LandingFooter } from "@/components/nav/landing-footer";
 
 import "highlight.js/styles/github-dark.css";
 
@@ -131,6 +133,7 @@ function DocsContent({ selectedDocParam }: { selectedDocParam: string }) {
 
   return (
     <>
+      <LandingHeader isSignedIn={false} />
       <style jsx global>{`
         pre {
           position: relative;
@@ -278,6 +281,7 @@ function DocsContent({ selectedDocParam }: { selectedDocParam: string }) {
         </div>
       </div>
     </div>
+    <LandingFooter />
     </>
   );
 }
