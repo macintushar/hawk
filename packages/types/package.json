@@ -1,0 +1,21 @@
+{
+  "name": "@hawk/types",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@turbo/gen": "^2.5.5",
+    "@types/node": "^20.19.9",
+    "@hawk/eslint-config": "workspace:*",
+    "@hawk/typescript-config": "workspace:*",
+    "eslint": "^9.32.0",
+    "typescript": "^5.9.2"
+  },
+  "types": "./src/types.ts"
+}

@@ -1,13 +1,13 @@
 {
   "name": "server",
   "scripts": {
-    "dev": "bun run --hot server.ts",
-    "dev:hono": "bun run --hot src/index.ts"
+    "dev": "bun run --hot server.ts"
   },
   "dependencies": {
     "hono": "^4.10.7"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@hawk/types": "workspace:*"
   }
 }
