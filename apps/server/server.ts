@@ -1,9 +1,9 @@
 import app from "./src";
-import { PORT } from "./src/constants";
+import env from "./src/env";
 
 try {
   Bun.serve({
-    port: PORT,
+    port: env.PORT,
     fetch: app.fetch,
   });
 } catch (error) {

@@ -1,4 +1,5 @@
 {
+  "extends": "@hawk/typescript-config/base",
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx",

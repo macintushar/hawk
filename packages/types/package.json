@@ -17,5 +17,6 @@
     "eslint": "^9.32.0",
     "typescript": "^5.9.2"
   },
-  "types": "./src/types.ts"
+  "types": "./src/types.ts",
+  "exports": "./src/types.ts"
 }
