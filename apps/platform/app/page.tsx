@@ -1,5 +1,12 @@
-import { Button } from "@hawk/ui/components/button"
-import { Table, TableBody, TableHead, TableRow, TableHeader, TableCell } from "@hawk/ui/components/table"
+import { Button } from "@hawk/ui/components/button";
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableHeader,
+  TableCell,
+} from "@hawk/ui/components/table";
 export default function Page() {
   return (
     <div className="flex items-center justify-center min-h-svh">
@@ -24,5 +31,5 @@ export default function Page() {
         </Table>
       </div>
     </div>
-  )
+  );
 }
