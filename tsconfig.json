@@ -1,0 +1,3 @@
+{
+  "extends": "@hawk/typescript-config/base.json"
+}
