@@ -5,7 +5,7 @@
 **Hawk** is an open-source uptime monitoring platform designed for flexibility ("Write Once, Run Anywhere"). It supports two primary deployment types:
 
 1.  **Server:** Traditional hosting (Docker, VPS) - privacy-focused, full control.
-2.  **Serverless:** Edge/Function platforms (Cloudflare Workers, Vercel) - globally distributed, zero-maintenance.
+2.  **Serverless:** Edge/Function platforms (Vercel) - globally distributed, zero-maintenance.
 
 **Core Differentiator:** Hawk's "Platform + Worker" architecture enables the same codebase to run on a $5 VPS or a globally distributed serverless edge network—a flexibility neither Uptime Kuma (monolithic) nor OpenStatus (cloud-native complexity) fully achieves.
 
@@ -16,7 +16,7 @@
 The architecture consists of two primary applications:
 
 1.  **Platform (`apps/platform`):** A Next.js 15 application that handles the User Interface, Configuration, API, and Scheduling. ("The Brain")
-2.  **Worker (`apps/worker`):** A lightweight Hono API server that runs the actual checks. It is deployable to Edge (Cloudflare Workers) or runs as a Docker container. ("The Muscle")
+2.  **Worker (`apps/worker`):** A lightweight Hono API server that runs the actual checks. It is deployable to Edge or runs as a Docker container. ("The Muscle")
 
 ```mermaid
 flowchart TB
@@ -47,7 +47,7 @@ flowchart TB
 
 - **Monorepo:** Turborepo
 - **Platform:** Next.js 15 (App Router)
-- **Worker:** Hono (Bun / Cloudflare Workers)
+- **Worker:** Hono (Bun)
 - **Database:** PostgreSQL 16+ with Drizzle ORM
 - **Queue:** BullMQ (Server) / QStash (Serverless)
 
@@ -55,14 +55,13 @@ flowchart TB
 
 The Worker is the key differentiator. It must be:
 
-- **Deployment-agnostic:** Same Hono codebase runs on Cloudflare Workers, AWS Lambda, Docker, or a Raspberry Pi.
+- **Deployment-agnostic:** Same Hono codebase runs on AWS Lambda, Docker, or a Raspberry Pi.
 - **Simple HTTP API:** Expose a `POST /execute` endpoint:
   - **Request:** `{ monitorId, config }` — Platform sends what to check.
   - **Response:** `{ status, latency, timings, region, ... }` — Worker returns results including where it ran.
 - **Region Detection:** Worker auto-detects its location and includes it in responses:
   | Environment            | Detection Source                         |
   | :--------------------- | :--------------------------------------- |
-  | **Cloudflare Workers** | `request.cf.colo` (e.g., `"IAD"`, `"NRT"`) |
   | **Vercel Edge**        | `process.env.VERCEL_REGION`              |
   | **Docker / Manual**    | `process.env.HAWK_REGION` (user-defined) |
 - **Support Pull and Push Models:**
@@ -140,10 +139,14 @@ Match Uptime Kuma's "alive" feeling with modern Next.js 15 patterns:
 
 ### Phase 1: Foundation
 
-- [ ] Initialize Monorepo (Next.js Platform, Hono Worker)
-- [ ] Setup Drizzle ORM + Postgres Schema (incl. Granular Metrics & Partitioning)
-- [ ] Docker Compose & Wrangler Config
+- [x] Initialize Monorepo (Next.js Platform, Hono Worker)
+- [/] Setup Drizzle ORM + Postgres Schema (incl. Granular Metrics & Partitioning)
+  - [x] Basic Drizzle ORM setup with PostgreSQL
+  - [ ] Add granular metrics schema (`monitor_checks` with timing fields)
+  - [ ] Implement PostgreSQL partitioning by month
+  - [ ] Add retention policies and indexes
 - [ ] Implement Worker `/execute` endpoint with region detection
+  - [x] Region detection via environment variables
 
 ### Phase 2: Core Engine (Worker)
 
@@ -161,6 +164,7 @@ Match Uptime Kuma's "alive" feeling with modern Next.js 15 patterns:
 
 ### Phase 4: Polish & Release
 
+- [ ] Docker Compose Config
 - [ ] End-to-end Testing
 - [ ] Performance testing with 10M+ check records
 - [ ] Notification plugin architecture
