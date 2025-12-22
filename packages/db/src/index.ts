@@ -1,12 +1,7 @@
-import 'dotenv/config';
-import { drizzle } from 'drizzle-orm/libsql';
+import { drizzle } from 'drizzle-orm/postgres-js';
 
-// You can specify any property from the libsql connection options
-const db = drizzle({
-    connection: {
-        url: process.env.TURSO_DATABASE_URL!,
-        authToken: process.env.TURSO_AUTH_TOKEN!
-    }
-});
+import env from "./env";
+
+const db = drizzle(env.DATABASE_URL);
 
 export default db;

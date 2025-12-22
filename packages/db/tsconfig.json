@@ -3,15 +3,25 @@
     "compilerOptions": {
         "baseUrl": ".",
         "paths": {
-            "@hawk/db/*": [
-                "./src/*"
+            "@/*": [
+                "./*"
             ]
-        }
+        },
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "strict": true,
+        "skipLibCheck": true,
+        "lib": [
+            "ESNext"
+        ],
+        "jsx": "react-jsx",
+        "jsxImportSource": "hono/jsx"
     },
     "include": [
-        "."
+        "**/*.ts",
     ],
     "exclude": [
-        "node_modules",
+        "node_modules"
     ]
 }
