@@ -3,10 +3,15 @@ import { z } from "zod";
 
 export const env = createEnv({
     server: {
-        DEPLOYMENT_PLATFORM: z.enum(["vercel", "cloudflare", "docker"]),
+        DEPLOYMENT_PLATFORM: z.enum(["vercel", "docker"]),
         PORT: z.string().optional().default("8787"),
+        REGION: z.string(),
     },
 
-    runtimeEnv: typeof process !== "undefined" ? process.env : {},
+    runtimeEnvStrict: {
+        DEPLOYMENT_PLATFORM: process.env.DEPLOYMENT_PLATFORM,
+        PORT: process.env.PORT,
+        REGION: process.env.REGION || process.env.VERCEL_REGION,
+    },
     emptyStringAsUndefined: true,
 });

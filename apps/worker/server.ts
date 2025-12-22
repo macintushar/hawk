@@ -6,6 +6,7 @@ import { env } from "./src/env";
 
 try {
     console.log(`Listening on port ${env.PORT}`);
+    console.log(`Running in region: ${env.REGION}`);
     Bun.serve({
         fetch: app.fetch,
         port: env.PORT,
