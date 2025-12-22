@@ -1,0 +1,29 @@
+{
+    "name": "@hawk/db",
+    "version": "0.0.0",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "lint": "eslint . --max-warnings 0",
+        "db:generate": "drizzle-kit generate",
+        "db:migrate": "drizzle-kit migrate",
+        "db:push": "drizzle-kit push"
+    },
+    "dependencies": {
+        "@libsql/client": "^0.15.15",
+        "dotenv": "^17.2.3",
+        "drizzle-orm": "^0.45.1"
+    },
+    "devDependencies": {
+        "@hawk/eslint-config": "workspace:*",
+        "@hawk/typescript-config": "workspace:*",
+        "drizzle-kit": "^0.31.8",
+        "eslint": "^9.32.0",
+        "typescript": "^5.9.2"
+    },
+    "exports": {
+        "./drizzle.config.ts": "./drizzle.config.ts",
+        "./schema.ts": "./src/db/schema.ts",
+        "./db": "./src/index.ts"
+    }
+}
