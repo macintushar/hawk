@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { logger } from "hono/logger";
+import { serveStatic } from "hono/bun";
 
 import { Monitor } from "@hawk/types";
 
@@ -12,5 +13,6 @@ app.get("/", (c) => {
   return c.text("Hello Hono!");
 });
 
+app.use("*", serveStatic({ root: "./public" }))
 
 export default app;
