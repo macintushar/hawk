@@ -7,67 +7,268 @@
 1.  **Server:** Traditional hosting (Docker, VPS) - privacy-focused, full control.
 2.  **Serverless:** Edge/Function platforms (Vercel) - globally distributed, zero-maintenance.
 
-**Core Differentiator:** Hawk's "Platform + Worker" architecture enables the same codebase to run on a $5 VPS or a globally distributed serverless edge network—a flexibility neither Uptime Kuma (monolithic) nor OpenStatus (cloud-native complexity) fully achieves.
+**Core Differentiator:** Hawk's 3-service architecture enables the same codebase to run on a $5 VPS or a globally distributed serverless edge network—a flexibility neither Uptime Kuma (monolithic) nor OpenStatus (cloud-native complexity) fully achieves.
 
 ---
 
-## 2. System Architecture: "Platform + Worker"
+## 2. System Architecture: "3-Service Architecture"
 
-The architecture consists of two primary applications:
+The architecture consists of three specialized applications:
 
-1.  **Platform (`apps/platform`):** A Next.js 15 application that handles the User Interface, Configuration, API, and Scheduling. ("The Brain")
-2.  **Worker (`apps/worker`):** A lightweight Hono API server that runs the actual checks. It is deployable to Edge or runs as a Docker container. ("The Muscle")
+1. **UI (`apps/ui`):** Next.js 15 dashboard for user interaction and data visualization. ("The Interface")
+2. **Platform (`apps/platform`):** Hono/Bun orchestrator that schedules checks, processes results, and manages incidents. ("The Brain")
+3. **Worker (`apps/worker`):** Lightweight Hono/Bun check executor deployed across regions. ("The Muscle")
 
 ```mermaid
 flowchart TB
-    subgraph Platform["Hawk Platform (Next.js)"]
-        direction LR
-        UI["Dashboard & Config"]
-        Scheduler["Scheduler & API"]
+    subgraph UI["Hawk UI (Next.js)"]
+        Dashboard["Dashboard & Monitor Management"]
+        DB_Read["Direct DB Reads"]
     end
 
-    subgraph Worker["Hawk Worker (Hono)"]
+    subgraph Platform["Hawk Platform (Hono/Bun)"]
+        Scheduler["Scheduler (Cron)"]
+        ResultHandler["Result Handler"]
+        IncidentDetector["Incident Detection"]
+        NotificationEngine["Notifications"]
+    end
+
+    subgraph Worker["Hawk Worker (Hono/Bun)"]
         CheckEngine["Check Executor"]
+    end
+
+    subgraph Queue["Queue System"]
+        QStash["QStash (Serverless)"]
+        BullMQ["BullMQ (Server)"]
     end
 
     subgraph Infra["Infrastructure"]
         direction TB
-        Redis[("Redis")]
-        Postgres[("Postgres")]
+        Redis[("Redis (Server)")]
+        Postgres[("PostgreSQL")]
     end
 
-    Platform --> Redis
-    Platform --> Postgres
-    Platform -.->|Queue/HTTP| Worker
-    Worker --> Redis
-    Worker --> Postgres
+    UI -->|Reads| Postgres
+    UI -->|Manual Check| Platform
+    Platform -->|Schedule| Queue
+    Queue -->|Enqueue Job| Worker
+    Worker -->|POST Result| Platform
+    Platform -->|Write Results| Postgres
+    Platform -.->|Optional (Server)| Redis
+
+    style UI fill:#e1f5ff
+    style Platform fill:#fff4e1
+    style Worker fill:#e8f5e9
 ```
 
-### 2.1 The Tech Stack
+### Service Responsibilities
+
+| Service      | Purpose         | Technology | Database Access | Queue Access           |
+| ------------ | --------------- | ---------- | --------------- | ---------------------- |
+| **UI**       | User Interface  | Next.js 15 | ✅ Read-only    | ❌ None                |
+| **Platform** | Orchestration   | Hono/Bun   | ✅ Read/Write   | ✅ Producer & Consumer |
+| **Worker**   | Check Execution | Hono/Bun   | ❌ None         | ❌ None (HTTP only)    |
+
+### Key Architectural Principles
+
+1. **Separation of Concerns:**
+   - UI only displays data and accepts user input
+   - Platform handles all business logic and orchestration
+   - Worker is a pure, stateless executor
+
+2. **Async Communication:**
+   - No long-lived connections between services
+   - Workers POST results back to Platform via callback URL
+   - Queue system enables fire-and-forget job dispatch
+
+3. **Dual-Mode Support:**
+   - **Serverless:** QStash for queuing, Vercel Cron for scheduling, HTTP callbacks
+   - **Server:** BullMQ/Redis for queuing, internal cron, background worker thread
+
+4. **Stateless Workers:**
+   - Workers have no database access
+   - Workers don't poll queues (they receive HTTP POST from queue system)
+   - Workers can be deployed anywhere with HTTP access
+
+---
+
+## 2.1 The Tech Stack
 
 - **Monorepo:** Turborepo
-- **Platform:** Next.js 15 (App Router)
-- **Worker:** Hono (Bun)
+- **UI:** Next.js 15 (App Router, React Server Components)
+- **Platform:** Hono (Bun runtime)
+- **Worker:** Hono (Bun runtime)
 - **Database:** PostgreSQL 16+ with Drizzle ORM
 - **Queue:** BullMQ (Server) / QStash (Serverless)
+- **Notifications:** Resend (Email), Slack (Webhooks)
 
-### 2.2 Worker API Design
+---
 
-The Worker is the key differentiator. It must be:
+## 2.2 Worker API Design
 
-- **Deployment-agnostic:** Same Hono codebase runs on AWS Lambda, Docker, or a Raspberry Pi.
-- **Simple HTTP API:** Expose a `POST /execute` endpoint:
-  - **Request:** `{ monitorId, config }` — Platform sends what to check.
-  - **Response:** `{ status, latency, timings, region, ... }` — Worker returns results including where it ran.
+The Worker is a stateless HTTP service that executes monitoring checks:
+
+- **Deployment-agnostic:** Same Hono codebase runs on Vercel Edge, AWS Lambda, Docker, or VPS.
+- **Single HTTP Endpoint:** `POST /execute`
+  - **Request:** `{ monitorId, config, callbackUrl }`
+  - **Behavior:** Execute check, POST result to `callbackUrl`, return 200 OK immediately
+  - **No blocking:** Worker doesn't wait for Platform acknowledgment
 - **Region Detection:** Worker auto-detects its location and includes it in responses:
-  | Environment            | Detection Source                         |
+  | Environment | Detection Source |
   | :--------------------- | :--------------------------------------- |
-  | **Vercel Edge**        | `process.env.VERCEL_REGION`              |
-  | **Docker / Manual**    | `process.env.HAWK_REGION` (user-defined) |
-- **Support Pull and Push Models:**
-  - **Pull:** Worker polls Platform for jobs (simple, works behind NAT).
-  - **Push:** Platform triggers Worker via HTTP (scalable, event-driven).
-- **Auto-registration:** Workers announce their presence and capabilities (region, available protocols) to the Platform.
+  | **Vercel Edge** | `process.env.VERCEL_REGION` |
+  | **Docker / Manual** | `process.env.HAWK_REGION` (user-defined) |
+
+- **Callback Pattern:**
+  - Worker receives job via HTTP POST (from QStash or Platform)
+  - Worker executes check (1-10 seconds)
+  - Worker POSTs result to Platform's callback URL
+  - Platform processes result asynchronously
+
+- **No Database Access:** Workers are completely stateless
+- **No Queue Polling:** Workers only respond to HTTP requests
+
+---
+
+## 2.3 Platform Orchestration
+
+Platform is the central orchestrator built with Hono/Bun for dual-mode deployment:
+
+### Serverless Mode (Vercel)
+
+```typescript
+// Triggered by Vercel Cron every minute
+export async function GET(req: Request) {
+  // 1. Pull active monitors from DB
+  const monitors = await db.query.monitors.findMany({
+    where: eq(monitors.active, true),
+  });
+
+  // 2. Enqueue jobs to QStash
+  for (const monitor of monitors) {
+    await qstash.publishJSON({
+      url: workerUrl + "/execute",
+      body: {
+        monitorId: monitor.id,
+        config: monitor.config,
+        callbackUrl: platformUrl + "/api/callback/result",
+      },
+    });
+  }
+}
+
+// Receives results from workers
+export async function POST(req: Request) {
+  const result = await req.json();
+  await handleCheckResult(result);
+}
+```
+
+### Server Mode (Docker)
+
+```typescript
+// Long-running process
+async function start() {
+  // 1. Start HTTP server
+  startHttpServer();
+
+  // 2. Start BullMQ consumer
+  const worker = new Worker("checks", async (job) => {
+    // Call worker via HTTP
+    const response = await fetch(job.data.workerUrl + "/execute", {
+      method: "POST",
+      body: JSON.stringify(job.data),
+    });
+  });
+
+  // 3. Start internal cron
+  cron.schedule("* * * * *", async () => {
+    await scheduleChecks();
+  });
+}
+```
+
+### Key Endpoints
+
+| Endpoint                      | Purpose               | Called By                    |
+| ----------------------------- | --------------------- | ---------------------------- |
+| `GET /api/cron/scheduler`     | Schedule checks       | Vercel Cron or external cron |
+| `POST /api/callback/result`   | Receive check results | Workers (async callback)     |
+| `POST /api/trigger/check/:id` | Manual check trigger  | UI "Check Now" button        |
+| `GET /api/health`             | Health check          | Load balancer                |
+
+### Dual-Mode Configuration
+
+Platform automatically detects deployment mode:
+
+```typescript
+// Environment detection
+if (process.env.QSTASH_TOKEN) {
+  // Serverless mode: Use QStash
+  queue = new QStashAdapter();
+} else if (process.env.REDIS_URL) {
+  // Server mode: Use BullMQ
+  queue = new BullMQAdapter();
+} else {
+  throw new Error("No queue configured");
+}
+```
+
+---
+
+## 2.4 UI Architecture
+
+UI is a Next.js 15 application focused purely on user interaction:
+
+### Data Access Pattern
+
+**Reads:** Direct database queries (fast, no HTTP overhead)
+
+```typescript
+// app/monitors/page.tsx (Server Component)
+import { db } from '@hawk/db';
+
+export default async function MonitorsPage() {
+  const monitors = await db.query.monitors.findMany({
+    with: {
+      latestCheck: true,
+      incidents: true
+    }
+  });
+
+  return <MonitorList monitors={monitors} />;
+}
+```
+
+**Writes:** Platform API calls (for side effects)
+
+```typescript
+// components/check-now-button.tsx (Client Component)
+"use client";
+
+async function handleCheckNow(monitorId: string) {
+  await fetch(`${PLATFORM_URL}/api/trigger/check/${monitorId}`, {
+    method: "POST",
+  });
+
+  toast.success("Check triggered!");
+}
+```
+
+### Why Direct DB Access?
+
+1. **Performance:** No HTTP roundtrip for reads
+2. **Simplicity:** Leverage Next.js Server Components
+3. **Type Safety:** Shared Drizzle schema from `@hawk/db`
+4. **Real-time:** React Server Components refresh on revalidation
+
+### Environment Variables
+
+```bash
+# apps/ui/.env
+DATABASE_URL=postgresql://...           # For reads
+PLATFORM_API_URL=https://platform.hawk.app  # For writes with side effects
+```
 
 ---
 
@@ -77,11 +278,11 @@ We use a single, unified PostgreSQL database—a pragmatic middle ground that ou
 
 - **Schema:** Defined in `packages/db`.
 - **Granular Metrics:** The `monitor_checks` table captures high-fidelity timings:
-  - `timing_dns`, `timing_tcp`, `timing_tls`, `timing_ttfb`, `timing_total`
+  - `timing_ttfb`, `timing_total`
 
-### 3.1 Partitioning & Performance
+### 3.1 Partitioning & Performance (Phase 2+)
 
-Implement database performance optimizations from day one to avoid painful migrations:
+Database performance optimizations planned for Phase 2:
 
 - **Partitioning:** `monitor_checks` partitioned by month using PostgreSQL native partitioning (`PARTITION BY RANGE (created_at)`).
 - **Retention Policies:** Auto-drop partitions older than 90 days (configurable).
@@ -95,25 +296,174 @@ Implement database performance optimizations from day one to avoid painful migra
 
 ### 4.1 Queue & Scheduling
 
-- **Server:** Platform schedules jobs via Cron to **BullMQ** (Redis). Worker consumes jobs.
-- **Serverless:** Platform uses Vercel Cron/API to dispatch to **QStash**, which POSTs to the Worker's `/execute` endpoint.
+Hawk uses a **dual-queue strategy** to support both serverless and server deployments:
+
+#### Serverless Mode (QStash)
+
+```
+Vercel Cron → Platform Endpoint → QStash → Worker (HTTP POST)
+                                      ↓
+                            Worker POSTs result back
+                                      ↓
+                            Platform Callback Endpoint
+```
+
+**Characteristics:**
+
+- ✅ No Redis required
+- ✅ HTTP-based, fully managed
+- ✅ Built-in retries and DLQ
+- ✅ Works on Vercel/Netlify/Edge
+- ⚠️ Requires Upstash account
+
+**Configuration:**
+
+```bash
+QSTASH_TOKEN=qstash_xxx
+QSTASH_CURRENT_SIGNING_KEY=sig_xxx
+QSTASH_NEXT_SIGNING_KEY=sig_xxx
+WORKER_URLS=https://worker-us.vercel.app,https://worker-eu.vercel.app
+```
+
+#### Server Mode (BullMQ)
+
+```
+Internal Cron → Platform Scheduler → BullMQ (Redis) → Platform Consumer
+                                                            ↓
+                                                    Calls Worker (HTTP)
+                                                            ↓
+                                                    Worker POSTs result back
+                                                            ↓
+                                                    Platform Callback Endpoint
+```
+
+**Characteristics:**
+
+- ✅ Self-hosted, no external dependencies
+- ✅ Full control over queue behavior
+- ✅ Advanced features (priorities, delayed jobs)
+- ✅ Lower cost at scale
+- ⚠️ Requires Redis instance
+
+**Configuration:**
+
+```bash
+REDIS_URL=redis://localhost:6379
+WORKER_URLS=http://worker-us:8787,http://worker-eu:8787
+```
+
+### 4.2 Worker Configuration
+
+Workers are configured via environment variables (no database registry):
+
+```bash
+# Simple list of worker URLs
+WORKER_URLS=https://worker-us.vercel.app,https://worker-eu.vercel.app,https://worker-asia.vercel.app
+
+# Or named by region
+WORKER_URL_US_EAST_1=https://worker-us.vercel.app
+WORKER_URL_EU_WEST_1=https://worker-eu.vercel.app
+WORKER_URL_ASIA_SOUTHEAST_1=https://worker-asia.vercel.app
+```
+
+**Why Environment Variables?**
+
+1. Infrastructure-level concern (not user-facing)
+2. Simpler than database registry
+3. Works for both deployment modes
+4. Easy to configure in Docker/Vercel/Railway
+
+**Future:** Phase 2+ may add database-based worker registry for:
+
+- Dynamic worker scaling
+- Health monitoring
+- User-managed workers
+- Worker performance metrics
+
+### 4.3 Check Lifecycle
+
+```mermaid
+sequenceDiagram
+    participant UI
+    participant Platform
+    participant Queue
+    participant Worker
+    participant DB
+
+    Note over Platform: Every minute (Cron)
+    Platform->>DB: SELECT active monitors
+    DB-->>Platform: List of monitors
+
+    loop For each monitor × region
+        Platform->>Queue: Enqueue job
+    end
+
+    Queue->>Worker: POST /execute
+    Note over Worker: Execute check<br/>(2-10 seconds)
+    Worker->>Platform: POST /api/callback/result
+
+    Platform->>DB: INSERT monitor_checks
+    Platform->>Platform: Detect status change?
+
+    alt Status changed
+        Platform->>DB: INSERT incident
+        Platform->>Platform: Send notifications
+    end
+
+    Platform-->>Worker: 200 OK
+
+    Note over UI: User opens dashboard
+    UI->>DB: SELECT monitors, checks, incidents
+    DB-->>UI: Display data
+```
+
+### 4.4 Deployment Scenarios
+
+| Scenario             | UI     | Platform | Workers                    | Queue        | Database       |
+| -------------------- | ------ | -------- | -------------------------- | ------------ | -------------- |
+| **Full Serverless**  | Vercel | Vercel   | Vercel Edge (multi-region) | QStash       | Neon/Supabase  |
+| **Full Self-Hosted** | Docker | Docker   | Docker (multi-VPS)         | BullMQ/Redis | Local Postgres |
+| **Hybrid 1**         | Vercel | VPS      | Vercel Edge                | BullMQ/Redis | Neon           |
+| **Hybrid 2**         | Vercel | Vercel   | VPS (multi-region)         | QStash       | Neon           |
 
 ---
 
 ## 5. Notification Strategy
 
-Don't build 90+ notification providers one-by-one. Adopt an adapter strategy:
+Phase 1 focuses on essential notification channels with a clean adapter pattern:
 
-### 5.1 Approach
+### 5.1 Phase 1 Approach
 
-- **Leverage Existing Libraries:** Consider adapting Uptime Kuma's notification providers (MIT licensed) or using a unified notification service like [Novu](https://novu.co/) (open-source, 20+ providers).
-- **Apprise Protocol Support:** [Apprise](https://github.com/caronc/apprise) supports 90+ services via a simple URL schema (e.g., `discord://webhook_id/webhook_token`).
-- **Plugin Architecture:** Make it trivial for the community to contribute new providers without touching core code.
+- **Resend (Email):** Official email API with React Email templates
+- **Slack (Webhooks):** Simple webhook integration for team notifications
 
-### 5.2 Targets
+### 5.2 Adapter Pattern
 
-- **v1.0:** 20+ providers (Email, Slack, Discord, Telegram, PagerDuty, webhooks).
-- **v2.0+:** Scale to 50+ via community contributions and plugin system.
+```typescript
+// packages/notifications/src/adapter.ts
+interface NotificationAdapter {
+  send(incident: Incident, channel: NotificationChannel): Promise<void>;
+}
+
+// Resend implementation
+class ResendAdapter implements NotificationAdapter {
+  async send(incident: Incident, channel: NotificationChannel) {
+    await resend.emails.send({
+      from: channel.config.from,
+      to: channel.config.to,
+      subject: `[${incident.status}] ${incident.monitorName}`,
+      html: renderEmail(incident),
+    });
+  }
+}
+```
+
+### 5.3 Future Expansion (Phase 2+)
+
+- **Additional Channels:** Discord, Telegram, PagerDuty, webhooks
+- **Plugin Architecture:** Allow community contributions
+- **Notification Rules:** Escalation policies, on-call schedules
+- **Rate Limiting:** Prevent notification storms
 
 ---
 
@@ -123,7 +473,7 @@ Match Uptime Kuma's "alive" feeling with modern Next.js 15 patterns:
 
 ### 6.1 Implementation Path
 
-1.  **v1.0 - Server Actions + Polling:** Use `useFormStatus` and RSC to server-render updated status every N seconds (simple, no WebSocket infrastructure).
+1.  **v1.0 - Server Components + Revalidation:** Leverage Next.js server components with periodic revalidation for fresh data.
 2.  **v1.1 - Streaming Responses:** Add streaming responses for long-running operations and real-time feedback on check results.
 3.  **v1.2+ - Optional WebSocket:** For power users, provide a lightweight WebSocket connection for sub-second updates.
 
@@ -137,43 +487,137 @@ Match Uptime Kuma's "alive" feeling with modern Next.js 15 patterns:
 
 ## 7. Implementation Roadmap
 
-### Phase 1: Foundation
+### Phase 1: Foundation ✅ (Completed)
 
-- [x] Initialize Monorepo (Next.js Platform, Hono Worker)
-- [/] Setup Drizzle ORM + Postgres Schema (incl. Granular Metrics & Partitioning)
-  - [x] Basic Drizzle ORM setup with PostgreSQL
-  - [ ] Add granular metrics schema (`monitor_checks` with timing fields)
-  - [ ] Implement PostgreSQL partitioning by month
-  - [ ] Add retention policies and indexes
-- [ ] Implement Worker `/execute` endpoint with region detection
-  - [x] Region detection via environment variables
+- [x] Initialize Monorepo (Turborepo)
+- [x] Setup Drizzle ORM + Postgres Schema
+  - [x] Monitors table with Zod validation
+  - [x] Monitor checks table (TTFB, total timing)
+  - [x] Incidents table
+  - [x] Notification channels table (Resend, Slack)
+- [x] Implement Worker `/execute` endpoint
+  - [x] HTTP adapter with native fetch
+  - [x] Region auto-detection
+  - [x] Zod validation
+  - [x] Timing measurement (TTFB, total)
+- [x] Type system with Zod schemas (`@hawk/types`)
+- [x] Adapter registry pattern
 
-### Phase 2: Core Engine (Worker)
+### Phase 2: Platform Orchestrator (In Progress)
 
-- [ ] Implement Check Logic (Fetch + detailed timings)
-- [ ] Add pull/push communication models
-- [ ] Worker auto-registration with Platform
-- [ ] Multi-region deployment configuration
+- [ ] Create `apps/platform` (Hono/Bun)
+  - [ ] HTTP server setup
+  - [ ] Environment detection (serverless vs server)
+- [ ] Implement Scheduler
+  - [ ] `/api/cron/scheduler` endpoint
+  - [ ] Pull active monitors from DB
+  - [ ] Enqueue jobs to queue
+- [ ] Queue Abstraction (`packages/queue`)
+  - [ ] QueueAdapter interface
+  - [ ] QStashAdapter implementation
+  - [ ] BullMQAdapter implementation
+  - [ ] Auto-detection factory
+- [ ] Result Handler
+  - [ ] `/api/callback/result` endpoint
+  - [ ] Save check results to DB
+  - [ ] Validate worker signatures (QStash)
+  - [ ] API key authentication (BullMQ)
+- [ ] Incident Detection
+  - [ ] Compare with previous status
+  - [ ] Create incidents on status change
+  - [ ] Resolve incidents on recovery
+- [ ] Background Processor (Server Mode)
+  - [ ] BullMQ consumer thread
+  - [ ] Call workers via HTTP
+  - [ ] Internal cron scheduler
 
-### Phase 3: Platform
+### Phase 3: UI Dashboard
 
-- [ ] Build Dashboard & Monitor Management
-- [ ] Implement Scheduler (BullMQ / QStash adapter)
-- [ ] Server Actions + Polling for real-time updates
-- [ ] Core notification providers (Email, Slack, Discord, Telegram, Webhooks)
+- [ ] Create `apps/ui` (Next.js 15)
+  - [ ] App Router setup
+  - [ ] Direct DB access for reads
+  - [ ] Platform API client for writes
+- [ ] Monitor Management
+  - [ ] List monitors with status
+  - [ ] Create/edit monitor form
+  - [ ] Delete monitor
+  - [ ] "Check Now" button → Platform API
+- [ ] Dashboard
+  - [ ] Overview (total monitors, up/down)
+  - [ ] Recent incidents
+  - [ ] Status badges
+- [ ] Monitor Detail Page
+  - [ ] Uptime chart
+  - [ ] Response time chart
+  - [ ] Check history table
+  - [ ] Incident timeline
 
-### Phase 4: Polish & Release
+### Phase 4: Notifications
 
-- [ ] Docker Compose Config
-- [ ] End-to-end Testing
-- [ ] Performance testing with 10M+ check records
-- [ ] Notification plugin architecture
+- [ ] Create `packages/notifications`
+  - [ ] Resend adapter (email)
+  - [ ] Slack adapter (webhooks)
+  - [ ] Notification interface
+- [ ] Platform Integration
+  - [ ] Trigger on status change
+  - [ ] Fetch notification channels from DB
+  - [ ] Send alerts via adapters
+  - [ ] Retry logic with backoff
+
+### Phase 5: Deployment & Documentation
+
+- [ ] Docker Compose Configuration
+  - [ ] postgres, redis, platform, ui, worker services
+  - [ ] Volume mounts for data persistence
+  - [ ] Environment variable templates
+- [ ] Vercel Deployment Guide
+  - [ ] Deploy UI to Vercel
+  - [ ] Deploy Platform to Vercel with Cron
+  - [ ] Deploy Workers to multiple regions
+  - [ ] Configure QStash
 - [ ] Documentation
-- [ ] Streaming responses for long-running operations
+  - [ ] Architecture overview
+  - [ ] Deployment guides (Docker, Vercel, Hybrid)
+  - [ ] Environment variable reference
+  - [ ] API documentation
+  - [ ] Contributing guide
 
-### Phase 5: Advanced Features (Post-v1.0)
+### Phase 6: Testing & Polish
 
-- [ ] Optional WebSocket layer for sub-second updates
-- [ ] Expand notification providers to 50+
-- [ ] Public status pages
-- [ ] Incident management
+- [ ] Integration Tests
+  - [ ] End-to-end check flow
+  - [ ] Incident detection
+  - [ ] Notification delivery
+- [ ] Performance Testing
+  - [ ] Load test with 1000+ monitors
+  - [ ] Database query optimization
+  - [ ] Connection pooling validation
+- [ ] UI Polish
+  - [ ] Loading states
+  - [ ] Error boundaries
+  - [ ] Toast notifications
+  - [ ] Responsive design
+
+### Phase 7: Advanced Features (Post-v1.0)
+
+- [ ] Additional Monitor Types
+  - [ ] TCP checks
+  - [ ] DNS checks
+  - [ ] TLS certificate expiry
+- [ ] Public Status Pages
+  - [ ] Shareable status URLs
+  - [ ] Custom domain support
+  - [ ] Incident communication
+- [ ] Advanced Notifications
+  - [ ] Discord, Telegram, PagerDuty
+  - [ ] Notification rules (escalation)
+  - [ ] On-call schedules
+- [ ] Analytics & Reporting
+  - [ ] Monthly uptime reports
+  - [ ] SLA tracking
+  - [ ] Performance trends
+- [ ] Worker Registry (Optional)
+  - [ ] Database-based worker management
+  - [ ] Health monitoring
+  - [ ] Dynamic scaling
+  - [ ] User-managed workers
