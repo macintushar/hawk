@@ -1,37 +1,18 @@
 {
-  "name": "hawk",
-  "version": "0.0.1",
+  "name": "hawk-status",
   "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
   "scripts": {
-    "build": "turbo build",
-    "dev": "turbo dev",
-    "lint": "turbo lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "db:generate": "turbo db:generate",
-    "db:migrate": "turbo db:migrate",
-    "db:push": "turbo db:push"
+    "check": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types tests/*.test.ts",
+    "monitor": "node --experimental-strip-types src/monitor.ts",
+    "notify": "node --experimental-strip-types src/notify.ts",
+    "publish": "node --experimental-strip-types src/publish.ts",
+    "serve": "npm run publish && python3 -m http.server 8000 -d dist"
   },
   "devDependencies": {
-    "@hawk/eslint-config": "workspace:*",
-    "@hawk/typescript-config": "workspace:*",
-    "@types/bun": "^1.3.5",
-    "eslint-config-next": "16.0.10",
-    "minimatch": "^10.1.1",
-    "prettier": "^3.7.4",
-    "turbo": "^2.7.1",
-    "typescript": "5.7.3"
-  },
-  "packageManager": "bun@1.3.5",
-  "engines": {
-    "node": ">=20"
-  },
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "dependencies": {
-    "@t3-oss/env-core": "^0.13.10",
-    "@tabler/icons": "^3.36.0",
-    "zod": "^4.2.1"
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
   }
 }

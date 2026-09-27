@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "notifications": {
+    "slack": { "enabled": false, "notifyOnRecovery": true }
+  },
+  "site": {
+    "title": "Hawk Status",
+    "description": "Live health and recent history of our services.",
+    "homeUrl": "https://example.com",
+    "staleAfterMinutes": 45,
+    "theme": {
+      "accent": "#3669e8",
+      "background": "#f7f9fc",
+      "surface": "#ffffff",
+      "text": "#172238"
+    }
+  },
+  "groups": [
+    { "id": "production", "name": "Production", "description": "Customer-facing systems" }
+  ],
+  "checks": [
+    {
+      "id": "homepage",
+      "name": "Website",
+      "description": "Public homepage",
+      "group": "production",
+      "publicUrl": "https://example.com",
+      "monitor": { "type": "http", "url": "https://example.com", "expectedStatus": 200, "timeoutMs": 10000 }
+    }
+  ]
+}
