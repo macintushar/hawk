@@ -9,10 +9,10 @@
     "homeUrl": "https://example.com",
     "staleAfterMinutes": 45,
     "theme": {
-      "accent": "#3669e8",
-      "background": "#f7f9fc",
+      "accent": "#000000",
+      "background": "#f3f6f9",
       "surface": "#ffffff",
-      "text": "#172238"
+      "text": "#000000"
     }
   },
   "groups": [

@@ -13,10 +13,10 @@ All paths are relative to the repository root. JSON is used instead of YAML so N
     "homeUrl": "https://acme.example",
     "staleAfterMinutes": 45,
     "theme": {
-      "accent": "#3669e8",
-      "background": "#f7f9fc",
+      "accent": "#000000",
+      "background": "#f3f6f9",
       "surface": "#ffffff",
-      "text": "#172238"
+      "text": "#000000"
     }
   },
   "groups": [{ "id": "core", "name": "Core services", "description": "Customer-facing" }],
@@ -24,7 +24,7 @@ All paths are relative to the repository root. JSON is used instead of YAML so N
 }
 ```
 
-At least one group and one check are required for deployment. IDs are unique lowercase slugs (`a-z`, digits, hyphens). `staleAfterMinutes` should be greater than your cron interval plus expected scheduling/deployment delay. Theme fields are six-digit hex colors; `web/styles.css` defines layout, cards and semantic status colors. Add a logo or a custom layout in `web/` if you need more extensive branding.
+At least one group and one check are required for deployment. IDs are unique lowercase slugs (`a-z`, digits, hyphens). `staleAfterMinutes` should be greater than your cron interval plus expected scheduling/deployment delay. Theme fields are six-digit hex colors; the default is the paper-desk palette. `web/styles.css` contains the full semantic palette, status colors and layout; it automatically uses the supplied dark palette when the visitor's system prefers dark mode. A `.dark` class on the document root forces dark colors, and `.light` forces the light palette. The `site.theme` settings brand the light palette; edit the CSS dark token block too if you want to customize dark colors. Add a logo or a custom layout in `web/` if you need more extensive branding.
 
 ## Checks
 

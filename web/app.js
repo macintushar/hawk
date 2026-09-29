@@ -66,7 +66,7 @@ function render({ config, history, incidents }) {
   $('footer-name').textContent = site.title;
   $('description').textContent = site.description || 'Current health and recent history.';
   if (site.homeUrl) $('brand').href = site.homeUrl;
-  for (const [key, value] of Object.entries(site.theme)) document.documentElement.style.setProperty(`--${key}`, value);
+  for (const [key, value] of Object.entries(site.theme)) document.documentElement.style.setProperty(`--site-${key}`, value);
 
   const samples = history.samples.slice().sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
   const last = samples.at(-1);
