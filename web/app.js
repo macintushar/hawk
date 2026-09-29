@@ -12,6 +12,9 @@ let activeLogo;
 
 function updateThemeButtons() {
   const mode = window.hawkTheme?.getMode() || 'system';
+  const trigger = $('theme-trigger');
+  trigger.dataset.mode = mode;
+  trigger.setAttribute('aria-label', `Appearance: ${mode[0].toUpperCase()}${mode.slice(1)}`);
   document.querySelectorAll('[data-theme-choice]').forEach(button => {
     button.setAttribute('aria-pressed', String(button.dataset.themeChoice === mode));
   });
@@ -47,7 +50,14 @@ function updateBrandLogo() {
 }
 
 document.querySelectorAll('[data-theme-choice]').forEach(button => {
-  button.addEventListener('click', () => window.hawkTheme?.setMode(button.dataset.themeChoice));
+  button.addEventListener('click', () => {
+    window.hawkTheme?.setMode(button.dataset.themeChoice);
+    $('theme-popover').hidePopover();
+  });
+});
+const themePopover = $('theme-popover');
+themePopover.addEventListener('toggle', () => {
+  $('theme-trigger').setAttribute('aria-expanded', String(themePopover.matches(':popover-open')));
 });
 window.addEventListener('hawk-theme-change', () => {
   updateThemeButtons();
