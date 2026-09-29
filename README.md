@@ -5,7 +5,7 @@ A forkable status page with no app server. GitHub Actions runs TypeScript HTTP/T
 ## Set up a page
 
 1. Fork or copy the repository. Use a **public repo on GitHub Free**; private-repo Pages requires an eligible paid plan. Never put secrets in the source config.
-2. Edit `config/status.json`: title, colors, groups and checks. Replace the example.com placeholder with your own endpoint. See [configuration reference](docs/configuration.md).
+2. Edit `config/status.json`: title, logo, colors, groups and checks. Replace the example.com placeholder with your own endpoint. See [configuration reference](docs/configuration.md).
 3. In **Settings → Pages → Build and deployment**, set **Source** to **GitHub Actions**. In **Settings → Actions → General**, allow workflows and set **Workflow permissions → Read and write permissions** (required to commit history). Your repository policy must allow Pages deployment.
 4. Run **Actions → Monitor and publish status → Run workflow**. The workflow records a first sample and deploys the page. Find its URL under **Settings → Pages** (usually `https://OWNER.github.io/REPO/`). Changes to config, UI or incident data also trigger a run.
 5. Optionally set a custom domain in Pages settings. For authenticated checks, add repository secrets and expose only the relevant environment variable in the workflow's **Run probes** step.

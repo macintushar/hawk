@@ -156,6 +156,7 @@ body {
   display: flex;
   align-items: center;
   gap: 11px;
+  max-width: min(64vw, 560px);
 }
 
 .brand-mark {
@@ -168,6 +169,53 @@ body {
   color: var(--primary-foreground);
   font-size: 23px;
   font-weight: 400;
+}
+
+#brand-mark[hidden], #brand-logo[hidden], #brand-name[hidden] { display: none; }
+
+.brand-logo-image {
+  display: block;
+  flex: 0 1 auto;
+  width: auto;
+  height: auto;
+  max-width: min(var(--logo-max-width, 300px), 42vw);
+  max-height: var(--logo-max-height, 64px);
+  object-fit: contain;
+}
+
+.theme-switcher {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--secondary);
+}
+
+.theme-button {
+  min-height: 32px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--secondary-foreground);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.theme-button[aria-pressed="true"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: 0 1px 3px #00000020;
+}
+
+.theme-button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 
 .header-label, .eyebrow {
@@ -312,7 +360,10 @@ footer {
 @media (max-width: 600px) {
   .shell { padding: 0 18px; }
   .header { height: 70px; }
-  .header-label { display: none; }
+  .brand { gap: 8px; max-width: calc(100% - 154px); }
+  .brand-logo-image { max-height: 46px; }
+  .theme-switcher { gap: 1px; padding: 2px; }
+  .theme-button { min-height: 30px; padding: 0 8px; font-size: 11px; }
   .intro { padding: 54px 0 30px; }
   .overview { padding: 19px; }
   .group-heading, .service, .incident { padding: 18px; }

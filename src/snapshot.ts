@@ -1,13 +1,17 @@
 import type { Config, History, Incidents } from './types.ts';
 
 export function makeSnapshot(config: Config, history: History, incidents: Incidents) {
-  const { title, description, homeUrl, staleAfterMinutes, theme } = config.site;
+  const { title, description, homeUrl, staleAfterMinutes, theme, logo } = config.site;
   return {
     config: {
       version: 1,
       site: {
         title, description, homeUrl, staleAfterMinutes,
-        theme: { accent: theme.accent, background: theme.background, surface: theme.surface, text: theme.text }
+        theme: { accent: theme.accent, background: theme.background, surface: theme.surface, text: theme.text },
+        ...(logo && { logo: {
+          src: logo.src, darkSrc: logo.darkSrc, text: logo.text, alt: logo.alt,
+          maxWidth: logo.maxWidth, maxHeight: logo.maxHeight
+        } })
       },
       groups: config.groups.map(({ id, name, description }) => ({ id, name, description })),
       checks: config.checks.map(({ id, name, description, group, publicUrl }) => ({ id, name, description, group, publicUrl }))

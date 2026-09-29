@@ -10,6 +10,15 @@ export type Check = {
   ) & { timeoutMs?: number };
 };
 
+export type SiteLogo = {
+  src?: string;
+  darkSrc?: string;
+  text?: string;
+  alt?: string;
+  maxWidth?: number;
+  maxHeight?: number;
+};
+
 export type Config = {
   version: 1;
   notifications?: { slack?: { enabled: boolean; notifyOnRecovery?: boolean } };
@@ -19,6 +28,7 @@ export type Config = {
     homeUrl?: string;
     staleAfterMinutes: number;
     theme: { accent: string; background: string; surface: string; text: string };
+    logo?: SiteLogo;
   };
   groups: { id: string; name: string; description?: string }[];
   checks: Check[];

@@ -8,6 +8,52 @@ const element = (tag, className, text) => {
 const dateTime = value => new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 const dayLabel = value => new Date(value + 'T12:00:00Z').toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
 const badge = (state, text) => element('span', `badge ${state}`, text);
+let activeLogo;
+
+function updateThemeButtons() {
+  const mode = window.hawkTheme?.getMode() || 'system';
+  document.querySelectorAll('[data-theme-choice]').forEach(button => {
+    button.setAttribute('aria-pressed', String(button.dataset.themeChoice === mode));
+  });
+}
+
+function updateBrandLogo() {
+  if (!activeLogo) return;
+  const { logo, title } = activeLogo;
+  const brand = $('brand');
+  const image = $('brand-logo');
+  const mark = $('brand-mark');
+  const name = $('brand-name');
+  const isDark = document.documentElement.classList.contains('dark');
+  const hasImage = Boolean(logo?.src);
+  const hasText = typeof logo?.text === 'string' && logo.text.length > 0;
+
+  brand.classList.toggle('has-logo-text', hasText);
+  brand.setAttribute('aria-label', hasText ? logo.text : `${title} home`);
+  name.textContent = hasText ? logo.text : (!logo ? title : '');
+  name.hidden = !name.textContent;
+  mark.hidden = hasImage;
+  image.hidden = !hasImage;
+
+  if (hasImage) {
+    const source = isDark && logo.darkSrc ? logo.darkSrc : logo.src;
+    if (image.getAttribute('src') !== source) image.src = source;
+    image.alt = hasText ? '' : (logo.alt || `${title} logo`);
+    image.style.setProperty('--logo-max-width', `${logo.maxWidth || (hasText ? 40 : 300)}px`);
+    image.style.setProperty('--logo-max-height', `${logo.maxHeight || (hasText ? 40 : 64)}px`);
+  } else {
+    image.removeAttribute('src');
+  }
+}
+
+document.querySelectorAll('[data-theme-choice]').forEach(button => {
+  button.addEventListener('click', () => window.hawkTheme?.setMode(button.dataset.themeChoice));
+});
+window.addEventListener('hawk-theme-change', () => {
+  updateThemeButtons();
+  updateBrandLogo();
+});
+updateThemeButtons();
 
 function latestResult(samples, id) {
   for (let i = samples.length - 1; i >= 0; i--) {
@@ -62,10 +108,11 @@ function render({ config, history, incidents }) {
   const { site, groups, checks } = config;
   document.title = `${site.title} · Status`;
   $('page-title').textContent = site.title;
-  $('brand-name').textContent = site.title;
   $('footer-name').textContent = site.title;
   $('description').textContent = site.description || 'Current health and recent history.';
   if (site.homeUrl) $('brand').href = site.homeUrl;
+  activeLogo = { logo: site.logo, title: site.title };
+  updateBrandLogo();
   for (const [key, value] of Object.entries(site.theme)) document.documentElement.style.setProperty(`--site-${key}`, value);
 
   const samples = history.samples.slice().sort((a, b) => Date.parse(a.at) - Date.parse(b.at));

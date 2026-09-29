@@ -12,6 +12,14 @@ All paths are relative to the repository root. JSON is used instead of YAML so N
     "description": "Availability of Acme products",
     "homeUrl": "https://acme.example",
     "staleAfterMinutes": 45,
+    "logo": {
+      "src": "assets/acme-mark.svg",
+      "darkSrc": "assets/acme-mark-dark.svg",
+      "text": "Acme",
+      "alt": "Acme",
+      "maxWidth": 40,
+      "maxHeight": 40
+    },
     "theme": {
       "accent": "#000000",
       "background": "#f3f6f9",
@@ -24,7 +32,11 @@ All paths are relative to the repository root. JSON is used instead of YAML so N
 }
 ```
 
-At least one group and one check are required for deployment. IDs are unique lowercase slugs (`a-z`, digits, hyphens). `staleAfterMinutes` should be greater than your cron interval plus expected scheduling/deployment delay. Theme fields are six-digit hex colors; the default is the paper-desk palette. `web/styles.css` contains the full semantic palette, status colors and layout; it automatically uses the supplied dark palette when the visitor's system prefers dark mode. A `.dark` class on the document root forces dark colors, and `.light` forces the light palette. The `site.theme` settings brand the light palette; edit the CSS dark token block too if you want to customize dark colors. Add a logo or a custom layout in `web/` if you need more extensive branding.
+At least one group and one check are required for deployment. IDs are unique lowercase slugs (`a-z`, digits, hyphens). `staleAfterMinutes` should be greater than your cron interval plus expected scheduling/deployment delay. Theme fields are six-digit hex colors; the default is the paper-desk palette. The header offers **Light**, **System**, and **Dark** modes and remembers the visitor's choice in local storage. `System` follows the OS preference, including changes made while the page is open.
+
+`site.logo` is optional. Put image files under `web/` (for example `web/assets/logo.svg`) and refer to them with a relative path like `assets/logo.svg`, so project Pages subpaths work. `darkSrc` is an optional alternate used in dark mode; it falls back to `src` when omitted. When `text` is present, it is the exact label shown beside the image and the image defaults to a 40 × 40 mark. When `text` is omitted, no adjacent label is shown and the image is displayed as a wider wordmark, preserving its intrinsic aspect ratio up to 300 × 64 pixels (and a responsive viewport width). Set `maxWidth` and `maxHeight` in pixels to override those maxima; accepted range is 16–1000. `alt` supplies alternative text when the logo has no adjacent text; otherwise the image is decorative because the visible label names it. If there is no image, the existing star mark is used and `text` can label it. With no `site.logo` object, the site title remains as the header label for compatibility.
+
+`web/styles.css` contains the full semantic palette, status colors and layout. The supplied dark palette applies automatically in System dark mode and when Dark is selected. `site.theme` brands the light palette; edit the CSS dark token block too if you want a custom dark palette. Add a custom layout in `web/` if you need more extensive branding.
 
 ## Checks
 

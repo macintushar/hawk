@@ -8,6 +8,7 @@
     "description": "Live health and recent history of our services.",
     "homeUrl": "https://example.com",
     "staleAfterMinutes": 45,
+    "logo": { "text": "Hawk Status" },
     "theme": {
       "accent": "#000000",
       "background": "#f3f6f9",

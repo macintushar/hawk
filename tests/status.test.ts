@@ -40,6 +40,13 @@ test('configuration validates IDs, targets and groups', () => {
   assert.throws(() => validateConfig({ ...base, checks: [{ ...base.checks[0], monitor: { type: 'http', url: 'file:\/\/secret' } }] }), /invalid HTTP/);
 });
 
+test('logo configuration accepts relative light/dark assets and rejects unsafe sources', () => {
+  const config = validateConfig({ ...base, site: { ...base.site, logo: { src: 'assets/mark.svg', darkSrc: 'assets/mark-dark.svg', text: 'Acme', maxWidth: 40, maxHeight: 40 } } });
+  assert.equal(config.site.logo?.text, 'Acme');
+  assert.throws(() => validateConfig({ ...base, site: { ...base.site, logo: { src: 'javascript:alert(1)' } } }), /site.logo.src/);
+  assert.throws(() => validateConfig({ ...base, site: { ...base.site, logo: { src: 'assets/../../private.svg' } } }), /site.logo.src/);
+});
+
 test('HTTP checks measure successes, failures and expected statuses', async () => {
   const check = { ...base.checks[0], monitor: { type: 'http' as const, url: `http://127.0.0.1:${httpPort}/ok`, timeoutMs: 1000 } };
   assert.equal((await probe(check)).status, 'up');
