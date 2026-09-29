@@ -12,7 +12,7 @@ A forkable status page with no app server. GitHub Actions runs TypeScript HTTP/T
 
 To receive Slack alerts, add a `SLACK_WEBHOOK_URL` repository Actions secret and set `notifications.slack.enabled` to `true` in `config/status.json`. Alerts are sent only when a service first fails or recovers. See [Slack notifications](docs/configuration.md#slack-notifications) for setup and retry behavior.
 
-The default schedule is four runs per hour (`:07`, `:22`, `:37`, `:52` UTC). GitHub schedules can be delayed or skipped. Public repos may have their schedule disabled after 60 days of inactivity; re-enable it in Actions. A stale check is shown as **unknown**, not operational. Deployment also takes time, so this is not a real-time alerting or SLA system.
+The default schedule is four runs per hour (`:07`, `:22`, `:37`, `:52` UTC). Each poll records and publishes a new observation, so Pages is redeployed each time to keep the public history and latest status current. Type-checks and tests run on manual and relevant push-triggered runs, not on every scheduled poll. GitHub schedules can be delayed or skipped. Public repos may have their schedule disabled after 60 days of inactivity; re-enable it in Actions. A stale check is shown as **unknown**, not operational. Deployment also takes time, so this is not a real-time alerting or SLA system.
 
 The push trigger is limited to `main` so feature branches and PRs cannot run probes or deploy the public page. If your default branch has another name, change the `branches` filter in `.github/workflows/status.yml`.
 

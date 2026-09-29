@@ -29,9 +29,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: npm
-      - run: npm ci
-      - run: npm run check && npm test
+      - name: Install dependencies for validation
+        if: github.event_name != 'schedule'
+        run: npm ci
+      - name: Validate configuration and tests
+        if: github.event_name != 'schedule'
+        run: npm run check && npm test
       - name: Run probes
         run: npm run monitor
         # Add required repository secrets here, e.g. CHECK_API_TOKEN: ${{ secrets.CHECK_API_TOKEN }}
