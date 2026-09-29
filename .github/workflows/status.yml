@@ -1,0 +1,76 @@
+name: Monitor and publish status
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'config/**'
+      - 'data/incidents.json'
+      - 'src/**'
+      - 'web/**'
+      - 'package*.json'
+      - '.github/workflows/status.yml'
+
+concurrency:
+  group: status-pipeline
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies for validation
+        if: github.event_name != 'schedule'
+        run: npm ci
+      - name: Validate configuration and tests
+        if: github.event_name != 'schedule'
+        run: npm run check && npm test
+      - name: Run probes
+        run: npm run monitor
+        # Add required repository secrets here, e.g. CHECK_API_TOKEN: ${{ secrets.CHECK_API_TOKEN }}
+      - name: Commit history
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/history.json
+          git commit -m 'chore: record status observations [skip ci]'
+          git push
+      - name: Send Slack notifications
+        run: npm run notify
+        continue-on-error: true
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Commit notification queue
+        run: |
+          git add data/history.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: acknowledge status notifications [skip ci]'
+            git push
+          fi
+      - run: npm run publish
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: monitor
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
